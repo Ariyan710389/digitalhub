@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { ProductCard } from "@/components/storefront/ProductCard";
 import { ProductData } from "@/types";
 
-export const revalidate = 0;
+export const revalidate = 30; // ISR cache for fast page loads
 
 export default async function AllProductsPage() {
   const rawProducts = await prisma.product.findMany({

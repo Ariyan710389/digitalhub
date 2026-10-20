@@ -6,7 +6,7 @@ import { ProductCard } from "@/components/storefront/ProductCard";
 import { ProductData } from "@/types";
 import { ArrowLeft } from "lucide-react";
 
-export const revalidate = 0;
+export const revalidate = 30; // ISR cache for fast page loads
 
 interface CategoryPageProps {
   params: Promise<{

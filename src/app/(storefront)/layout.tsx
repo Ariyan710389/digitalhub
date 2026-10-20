@@ -4,7 +4,7 @@ import { Header } from "@/components/storefront/Header";
 import { Footer } from "@/components/storefront/Footer";
 import { CartDrawer } from "@/components/storefront/CartDrawer";
 
-export const revalidate = 0; // dynamic data
+export const revalidate = 30; // ISR cache for fast layout rendering
 
 export default async function StorefrontLayout({
   children,

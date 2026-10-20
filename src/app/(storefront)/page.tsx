@@ -9,47 +9,45 @@ import { FAQ } from "@/components/storefront/FAQ";
 import { Newsletter } from "@/components/storefront/Newsletter";
 import { ProductData, CategoryData, HeroSlideData } from "@/types";
 
-export const revalidate = 0; // dynamic data
+export const revalidate = 30; // ISR cache for fast page loads
 
 export default async function HomePage() {
-  // Query Hero Slides
-  const rawSlides = await prisma.heroSlide.findMany({
-    where: { isActive: true },
-    orderBy: { displayOrder: "asc" },
-  });
-
-  // Query Categories
-  const rawCategories = await prisma.category.findMany({
-    where: { isActive: true },
-    orderBy: { displayOrder: "asc" },
-  });
-
-  // Query Latest Products with variations and options
-  const rawProducts = await prisma.product.findMany({
-    where: { isPublished: true, isDeleted: false },
-    include: {
-      category: {
-        select: { id: true, name: true, slug: true },
-      },
-      images: {
-        select: { id: true, url: true, alt: true },
-        orderBy: { displayOrder: "asc" },
-      },
-      variations: {
-        where: { isActive: true },
-        include: {
-          variationOptions: {
-            include: {
-              attribute: true,
-              option: true,
+  // Query all data concurrently with Promise.all for maximum speed
+  const [rawSlides, rawCategories, rawProducts] = await Promise.all([
+    prisma.heroSlide.findMany({
+      where: { isActive: true },
+      orderBy: { displayOrder: "asc" },
+    }),
+    prisma.category.findMany({
+      where: { isActive: true },
+      orderBy: { displayOrder: "asc" },
+    }),
+    prisma.product.findMany({
+      where: { isPublished: true, isDeleted: false },
+      include: {
+        category: {
+          select: { id: true, name: true, slug: true },
+        },
+        images: {
+          select: { id: true, url: true, alt: true },
+          orderBy: { displayOrder: "asc" },
+        },
+        variations: {
+          where: { isActive: true },
+          include: {
+            variationOptions: {
+              include: {
+                attribute: true,
+                option: true,
+              },
             },
           },
         },
       },
-    },
-    orderBy: { createdAt: "desc" },
-    take: 12,
-  });
+      orderBy: { createdAt: "desc" },
+      take: 12,
+    }),
+  ]);
 
   const heroSlides: HeroSlideData[] = rawSlides.map((s) => ({
     id: s.id,

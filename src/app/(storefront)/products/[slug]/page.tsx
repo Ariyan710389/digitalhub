@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { ProductDetailsClient } from "./ProductDetailsClient";
 import { ProductData } from "@/types";
 
-export const revalidate = 0;
+export const revalidate = 30; // ISR cache for fast page loads
 
 interface ProductPageProps {
   params: Promise<{
