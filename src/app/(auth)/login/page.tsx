@@ -127,13 +127,6 @@ function LoginForm() {
           Create an account
         </Link>
       </div>
-
-      {/* Demo Credentials Hint */}
-      <div className="mt-4 p-3 rounded-xl bg-[#080D1B] border border-[#1B2A45] text-[11px] text-[#94A3B8] space-y-1">
-        <div className="font-semibold text-[#F8FAFC]">Demo Credentials:</div>
-        <div>Admin: <code className="text-[#00D9FF]">admin@digitalhub.com</code> / <code className="text-[#00D9FF]">Admin@12345</code></div>
-        <div>Customer: <code className="text-emerald-400">customer@gmail.com</code> / <code className="text-emerald-400">Customer@12345</code></div>
-      </div>
     </div>
   );
 }
