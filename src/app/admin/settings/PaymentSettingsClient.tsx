@@ -3,7 +3,16 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { toast } from "@/components/ui/Toast";
-import { Save, ShieldCheck, Phone, Check } from "lucide-react";
+import {
+  Save,
+  ShieldCheck,
+  Phone,
+  Share2,
+  MapPin,
+  Clock,
+  Mail,
+  CheckCircle,
+} from "lucide-react";
 
 interface PaymentMethodItem {
   id: string;
@@ -25,6 +34,7 @@ export function PaymentSettingsClient({ initialMethods, initialSettings }: Props
   const [methods, setMethods] = useState<PaymentMethodItem[]>(initialMethods);
   const [siteSettings, setSiteSettings] = useState<Record<string, string>>(initialSettings);
   const [isSaving, setIsSaving] = useState(false);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const handleMethodChange = (slug: string, field: keyof PaymentMethodItem, value: any) => {
     setMethods((prev) =>
@@ -32,9 +42,14 @@ export function PaymentSettingsClient({ initialMethods, initialSettings }: Props
     );
   };
 
+  const handleSettingChange = (key: string, value: string) => {
+    setSiteSettings((prev) => ({ ...prev, [key]: value }));
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
+    setSuccessMsg(null);
 
     try {
       const res = await fetch("/api/admin/settings", {
@@ -52,7 +67,8 @@ export function PaymentSettingsClient({ initialMethods, initialSettings }: Props
         throw new Error(data.message || "Failed to update settings");
       }
 
-      toast.success(data.message);
+      setSuccessMsg("Settings updated successfully! Changes are live across the store.");
+      toast.success("Settings updated successfully!");
     } catch (err: any) {
       toast.error(err.message || "Error saving settings.");
     } finally {
@@ -62,17 +78,29 @@ export function PaymentSettingsClient({ initialMethods, initialSettings }: Props
 
   return (
     <form onSubmit={handleSave} className="space-y-8">
-      {/* Bangladesh Payment Methods Card */}
+      {successMsg && (
+        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs flex items-center gap-2">
+          <CheckCircle className="w-4 h-4 shrink-0" />
+          <span>{successMsg}</span>
+        </div>
+      )}
+
+      {/* 1. Bangladesh Payment Methods (bKash, Nagad, Rocket, COD) Card */}
       <div className="rounded-3xl bg-[#0B1224] border border-[#1B2A45] p-6 sm:p-8 space-y-6 shadow-xl">
         <div className="flex items-center justify-between border-b border-[#1B2A45] pb-4">
           <div className="flex items-center gap-2.5">
             <Phone className="h-5 w-5 text-[#00D9FF]" />
-            <h2 className="text-base font-bold text-[#F8FAFC]">
-              Mobile Financial Services (MFS) Configuration
-            </h2>
+            <div>
+              <h2 className="text-base font-bold text-[#F8FAFC]">
+                Mobile Financial Services (MFS) & Payment Gateways
+              </h2>
+              <p className="text-xs text-[#94A3B8] mt-0.5">
+                Set receiving numbers for bKash, Nagad, and Rocket. These appear directly on checkout.
+              </p>
+            </div>
           </div>
-          <span className="text-xs text-[#00D9FF] bg-[#00D9FF]/10 px-3 py-1 rounded-full font-bold">
-            Live Gateway
+          <span className="hidden sm:inline-block text-xs text-[#00D9FF] bg-[#00D9FF]/10 px-3 py-1 rounded-full font-bold border border-[#00D9FF]/20">
+            Live Settings
           </span>
         </div>
 
@@ -87,13 +115,13 @@ export function PaymentSettingsClient({ initialMethods, initialSettings }: Props
                   <span className="text-sm font-extrabold text-[#F8FAFC]">
                     {pm.displayName}
                   </span>
-                  <span className="text-[11px] font-mono text-[#94A3B8]">
-                    ({pm.slug})
+                  <span className="text-[11px] font-mono text-[#00D9FF] bg-[#00D9FF]/10 px-2 py-0.5 rounded-md">
+                    {pm.slug.toUpperCase()}
                   </span>
                 </div>
 
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <span className="text-xs text-[#94A3B8]">Active Status:</span>
+                  <span className="text-xs text-[#94A3B8]">Active on Store:</span>
                   <input
                     type="checkbox"
                     checked={pm.isActive}
@@ -107,7 +135,7 @@ export function PaymentSettingsClient({ initialMethods, initialSettings }: Props
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-[#94A3B8] mb-1">
-                      Receiving Number *
+                      Receiving / Merchant Number *
                     </label>
                     <input
                       type="text"
@@ -115,14 +143,14 @@ export function PaymentSettingsClient({ initialMethods, initialSettings }: Props
                       onChange={(e) =>
                         handleMethodChange(pm.slug, "merchantNumber", e.target.value)
                       }
-                      placeholder="+880 1712 345678"
-                      className="w-full rounded-xl bg-[#0B1224] border border-[#1B2A45] px-3.5 py-2 text-xs font-mono text-[#00D9FF] focus:outline-none focus:border-[#00D9FF]"
+                      placeholder="e.g. 01712345678"
+                      className="w-full rounded-xl bg-[#0B1224] border border-[#1B2A45] px-3.5 py-2.5 text-xs font-mono text-[#00D9FF] focus:outline-none focus:border-[#00D9FF]"
                     />
                   </div>
 
                   <div>
                     <label className="block text-xs font-semibold text-[#94A3B8] mb-1">
-                      Account Type (Personal / Merchant)
+                      Account Type (Personal / Merchant / Agent)
                     </label>
                     <input
                       type="text"
@@ -130,8 +158,8 @@ export function PaymentSettingsClient({ initialMethods, initialSettings }: Props
                       onChange={(e) =>
                         handleMethodChange(pm.slug, "accountType", e.target.value)
                       }
-                      placeholder="e.g. Personal Account"
-                      className="w-full rounded-xl bg-[#0B1224] border border-[#1B2A45] px-3.5 py-2 text-xs text-[#F8FAFC] focus:outline-none focus:border-[#00D9FF]"
+                      placeholder="e.g. Personal (Send Money) or Merchant (Make Payment)"
+                      className="w-full rounded-xl bg-[#0B1224] border border-[#1B2A45] px-3.5 py-2.5 text-xs text-[#F8FAFC] focus:outline-none focus:border-[#00D9FF]"
                     />
                   </div>
                 </div>
@@ -139,7 +167,7 @@ export function PaymentSettingsClient({ initialMethods, initialSettings }: Props
 
               <div>
                 <label className="block text-xs font-semibold text-[#94A3B8] mb-1">
-                  Payment Instructions Displayed to Customer
+                  Customer Payment Instructions
                 </label>
                 <textarea
                   rows={2}
@@ -147,8 +175,8 @@ export function PaymentSettingsClient({ initialMethods, initialSettings }: Props
                   onChange={(e) =>
                     handleMethodChange(pm.slug, "instructions", e.target.value)
                   }
-                  placeholder="Enter exact step-by-step instructions for the customer..."
-                  className="w-full rounded-xl bg-[#0B1224] border border-[#1B2A45] px-3.5 py-2 text-xs text-[#F8FAFC] focus:outline-none focus:border-[#00D9FF] resize-none"
+                  placeholder="e.g. Send Money to our Personal number above and submit your Transaction ID (TrxID) below..."
+                  className="w-full rounded-xl bg-[#0B1224] border border-[#1B2A45] px-3.5 py-2.5 text-xs text-[#F8FAFC] focus:outline-none focus:border-[#00D9FF] resize-none"
                 />
               </div>
             </div>
@@ -156,13 +184,100 @@ export function PaymentSettingsClient({ initialMethods, initialSettings }: Props
         </div>
       </div>
 
-      {/* Website & Contact Information Card */}
+      {/* 2. Social Media Channels Card */}
+      <div className="rounded-3xl bg-[#0B1224] border border-[#1B2A45] p-6 sm:p-8 space-y-6 shadow-xl">
+        <div className="flex items-center gap-2.5 border-b border-[#1B2A45] pb-4">
+          <Share2 className="h-5 w-5 text-[#8B3DFF]" />
+          <div>
+            <h2 className="text-base font-bold text-[#F8FAFC]">
+              Social Media Channels & Direct Chat
+            </h2>
+            <p className="text-xs text-[#94A3B8] mt-0.5">
+              These links appear in the website header, footer, and contact sections.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-semibold text-[#94A3B8] mb-1">
+              WhatsApp Link or Number
+            </label>
+            <input
+              type="text"
+              value={siteSettings.social_whatsapp || ""}
+              onChange={(e) => handleSettingChange("social_whatsapp", e.target.value)}
+              placeholder="e.g. https://wa.me/8801712345678 or 01712345678"
+              className="w-full rounded-xl bg-[#080D1B] border border-[#1B2A45] px-3.5 py-2.5 text-xs text-[#F8FAFC] focus:outline-none focus:border-[#00D9FF]"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-[#94A3B8] mb-1">
+              Facebook Page URL
+            </label>
+            <input
+              type="text"
+              value={siteSettings.social_facebook || ""}
+              onChange={(e) => handleSettingChange("social_facebook", e.target.value)}
+              placeholder="https://facebook.com/yourpage"
+              className="w-full rounded-xl bg-[#080D1B] border border-[#1B2A45] px-3.5 py-2.5 text-xs text-[#F8FAFC] focus:outline-none focus:border-[#00D9FF]"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-[#94A3B8] mb-1">
+              Telegram Channel or Support Link
+            </label>
+            <input
+              type="text"
+              value={siteSettings.social_telegram || ""}
+              onChange={(e) => handleSettingChange("social_telegram", e.target.value)}
+              placeholder="https://t.me/yourusername"
+              className="w-full rounded-xl bg-[#080D1B] border border-[#1B2A45] px-3.5 py-2.5 text-xs text-[#F8FAFC] focus:outline-none focus:border-[#00D9FF]"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-[#94A3B8] mb-1">
+              YouTube Channel URL
+            </label>
+            <input
+              type="text"
+              value={siteSettings.social_youtube || ""}
+              onChange={(e) => handleSettingChange("social_youtube", e.target.value)}
+              placeholder="https://youtube.com/@yourchannel"
+              className="w-full rounded-xl bg-[#080D1B] border border-[#1B2A45] px-3.5 py-2.5 text-xs text-[#F8FAFC] focus:outline-none focus:border-[#00D9FF]"
+            />
+          </div>
+
+          <div className="sm:col-span-2">
+            <label className="block text-xs font-semibold text-[#94A3B8] mb-1">
+              Instagram Profile URL
+            </label>
+            <input
+              type="text"
+              value={siteSettings.social_instagram || ""}
+              onChange={(e) => handleSettingChange("social_instagram", e.target.value)}
+              placeholder="https://instagram.com/yourhandle"
+              className="w-full rounded-xl bg-[#080D1B] border border-[#1B2A45] px-3.5 py-2.5 text-xs text-[#F8FAFC] focus:outline-none focus:border-[#00D9FF]"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Website & Contact Information Card */}
       <div className="rounded-3xl bg-[#0B1224] border border-[#1B2A45] p-6 sm:p-8 space-y-6 shadow-xl">
         <div className="flex items-center gap-2.5 border-b border-[#1B2A45] pb-4">
           <ShieldCheck className="h-5 w-5 text-emerald-400" />
-          <h2 className="text-base font-bold text-[#F8FAFC]">
-            Website Brand & Contact Settings
-          </h2>
+          <div>
+            <h2 className="text-base font-bold text-[#F8FAFC]">
+              Website Brand & Contact Settings
+            </h2>
+            <p className="text-xs text-[#94A3B8] mt-0.5">
+              Official company contact information displayed in the footer and support pages.
+            </p>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -173,31 +288,51 @@ export function PaymentSettingsClient({ initialMethods, initialSettings }: Props
             <input
               type="email"
               value={siteSettings.contact_email || "info@digitalhub.com"}
-              onChange={(e) =>
-                setSiteSettings({ ...siteSettings, contact_email: e.target.value })
-              }
-              className="w-full rounded-xl bg-[#080D1B] border border-[#1B2A45] px-3.5 py-2 text-xs text-[#F8FAFC] focus:outline-none focus:border-[#00D9FF]"
+              onChange={(e) => handleSettingChange("contact_email", e.target.value)}
+              className="w-full rounded-xl bg-[#080D1B] border border-[#1B2A45] px-3.5 py-2.5 text-xs text-[#F8FAFC] focus:outline-none focus:border-[#00D9FF]"
             />
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-[#94A3B8] mb-1">
-              Support Phone
+              Support Phone / Helpline
             </label>
             <input
               type="text"
               value={siteSettings.contact_phone || "+880 1712 345678"}
-              onChange={(e) =>
-                setSiteSettings({ ...siteSettings, contact_phone: e.target.value })
-              }
-              className="w-full rounded-xl bg-[#080D1B] border border-[#1B2A45] px-3.5 py-2 text-xs text-[#F8FAFC] focus:outline-none focus:border-[#00D9FF]"
+              onChange={(e) => handleSettingChange("contact_phone", e.target.value)}
+              className="w-full rounded-xl bg-[#080D1B] border border-[#1B2A45] px-3.5 py-2.5 text-xs text-[#F8FAFC] focus:outline-none focus:border-[#00D9FF]"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-[#94A3B8] mb-1">
+              Business Address
+            </label>
+            <input
+              type="text"
+              value={siteSettings.business_address || "Dhaka, Bangladesh"}
+              onChange={(e) => handleSettingChange("business_address", e.target.value)}
+              className="w-full rounded-xl bg-[#080D1B] border border-[#1B2A45] px-3.5 py-2.5 text-xs text-[#F8FAFC] focus:outline-none focus:border-[#00D9FF]"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-[#94A3B8] mb-1">
+              Support Hours
+            </label>
+            <input
+              type="text"
+              value={siteSettings.support_hours || "24/7 Available"}
+              onChange={(e) => handleSettingChange("support_hours", e.target.value)}
+              className="w-full rounded-xl bg-[#080D1B] border border-[#1B2A45] px-3.5 py-2.5 text-xs text-[#F8FAFC] focus:outline-none focus:border-[#00D9FF]"
             />
           </div>
         </div>
       </div>
 
       {/* Save Button */}
-      <div className="flex justify-end">
+      <div className="flex justify-end pt-2">
         <Button
           type="submit"
           variant="primary"

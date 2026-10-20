@@ -6,11 +6,58 @@ import {
   Mail,
   Clock,
   ShieldCheck,
-  CreditCard,
 } from "lucide-react";
 import { APP_CONFIG } from "@/lib/constants";
 
-export function Footer() {
+interface PaymentMethodItem {
+  id: string;
+  name: string;
+  slug: string;
+  displayName: string;
+  merchantNumber?: string | null;
+  accountType?: string | null;
+  isActive: boolean;
+}
+
+interface FooterProps {
+  siteSettings?: Record<string, string>;
+  paymentMethods?: PaymentMethodItem[];
+}
+
+export function Footer({ siteSettings, paymentMethods }: FooterProps) {
+  const phone = siteSettings?.contact_phone || APP_CONFIG.contact.phone;
+  const email = siteSettings?.contact_email || APP_CONFIG.contact.email;
+  const address = siteSettings?.business_address || APP_CONFIG.contact.address;
+  const supportHours = siteSettings?.support_hours || APP_CONFIG.contact.supportHours;
+
+  const fbLink = siteSettings?.social_facebook || APP_CONFIG.social.facebook;
+  const igLink = siteSettings?.social_instagram || APP_CONFIG.social.instagram;
+  const ytLink = siteSettings?.social_youtube || APP_CONFIG.social.youtube;
+  const waLink = siteSettings?.social_whatsapp || APP_CONFIG.social.whatsapp;
+  const tgLink = siteSettings?.social_telegram || APP_CONFIG.social.telegram;
+
+  // Filter payment methods for display (exclude COD if needed, or show active MFS)
+  const mfsMethods = paymentMethods && paymentMethods.length > 0
+    ? paymentMethods.filter((pm) => pm.slug !== "cod")
+    : [
+        { slug: "bkash", displayName: "bKash", merchantNumber: "01712345678" },
+        { slug: "nagad", displayName: "Nagad", merchantNumber: "01712345678" },
+        { slug: "rocket", displayName: "Rocket", merchantNumber: "01712345678" },
+      ];
+
+  const getMfsColor = (slug: string) => {
+    switch (slug) {
+      case "bkash":
+        return "text-pink-400";
+      case "nagad":
+        return "text-orange-400";
+      case "rocket":
+        return "text-purple-400";
+      default:
+        return "text-[#00D9FF]";
+    }
+  };
+
   return (
     <footer className="w-full bg-[#070B16] border-t border-[#1B2A45] text-[#94A3B8] text-xs">
       {/* Top Gradient Accent Line */}
@@ -47,7 +94,7 @@ export function Footer() {
             {/* Social Links */}
             <div className="flex items-center gap-2.5 pt-2">
               <a
-                href={APP_CONFIG.social.facebook}
+                href={fbLink}
                 target="_blank"
                 rel="noreferrer"
                 className="w-8 h-8 rounded-full bg-[#0B1224] border border-[#1B2A45] flex items-center justify-center text-[#94A3B8] hover:text-[#00D9FF] hover:border-[#00D9FF] transition-all font-bold text-xs"
@@ -56,7 +103,7 @@ export function Footer() {
                 f
               </a>
               <a
-                href={APP_CONFIG.social.instagram}
+                href={igLink}
                 target="_blank"
                 rel="noreferrer"
                 className="w-8 h-8 rounded-full bg-[#0B1224] border border-[#1B2A45] flex items-center justify-center text-[#94A3B8] hover:text-[#8B3DFF] hover:border-[#8B3DFF] transition-all font-bold text-xs"
@@ -65,7 +112,7 @@ export function Footer() {
                 in
               </a>
               <a
-                href={APP_CONFIG.social.youtube}
+                href={ytLink}
                 target="_blank"
                 rel="noreferrer"
                 className="w-8 h-8 rounded-full bg-[#0B1224] border border-[#1B2A45] flex items-center justify-center text-[#94A3B8] hover:text-red-500 hover:border-red-500 transition-all font-bold text-xs"
@@ -74,7 +121,7 @@ export function Footer() {
                 yt
               </a>
               <a
-                href={APP_CONFIG.social.whatsapp}
+                href={waLink.startsWith("http") ? waLink : `https://wa.me/${waLink.replace(/[^0-9]/g, "")}`}
                 target="_blank"
                 rel="noreferrer"
                 className="w-8 h-8 rounded-full bg-[#0B1224] border border-[#1B2A45] flex items-center justify-center text-[#94A3B8] hover:text-emerald-400 hover:border-emerald-400 transition-all font-bold text-xs"
@@ -83,7 +130,7 @@ export function Footer() {
                 wa
               </a>
               <a
-                href={APP_CONFIG.social.telegram}
+                href={tgLink.startsWith("http") ? tgLink : `https://t.me/${tgLink.replace("@", "")}`}
                 target="_blank"
                 rel="noreferrer"
                 className="w-8 h-8 rounded-full bg-[#0B1224] border border-[#1B2A45] flex items-center justify-center text-[#94A3B8] hover:text-sky-400 hover:border-sky-400 transition-all font-bold text-xs"
@@ -141,23 +188,23 @@ export function Footer() {
             <ul className="space-y-2.5 text-xs">
               <li className="flex items-start gap-2.5">
                 <MapPin className="h-4 w-4 text-[#00D9FF] shrink-0 mt-0.5" />
-                <span>{APP_CONFIG.contact.address}</span>
+                <span>{address}</span>
               </li>
               <li className="flex items-center gap-2.5">
                 <Phone className="h-4 w-4 text-[#00D9FF] shrink-0" />
-                <a href={`tel:${APP_CONFIG.contact.phone}`} className="hover:text-[#00D9FF]">
-                  {APP_CONFIG.contact.phone}
+                <a href={`tel:${phone}`} className="hover:text-[#00D9FF]">
+                  {phone}
                 </a>
               </li>
               <li className="flex items-center gap-2.5">
                 <Mail className="h-4 w-4 text-[#00D9FF] shrink-0" />
-                <a href={`mailto:${APP_CONFIG.contact.email}`} className="hover:text-[#00D9FF]">
-                  {APP_CONFIG.contact.email}
+                <a href={`mailto:${email}`} className="hover:text-[#00D9FF]">
+                  {email}
                 </a>
               </li>
               <li className="flex items-center gap-2.5">
                 <Clock className="h-4 w-4 text-[#00D9FF] shrink-0" />
-                <span>{APP_CONFIG.contact.supportHours}</span>
+                <span>{supportHours}</span>
               </li>
             </ul>
           </div>
@@ -168,20 +215,21 @@ export function Footer() {
               Payment Methods
             </h4>
             <div className="space-y-2">
-              <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-[#0B1224] border border-[#1B2A45]">
-                <span className="font-semibold text-pink-400">bKash</span>
-                <span className="text-[11px] font-mono text-[#F8FAFC]">+880 1712 345678</span>
-              </div>
-              <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-[#0B1224] border border-[#1B2A45]">
-                <span className="font-semibold text-orange-400">Nagad</span>
-                <span className="text-[11px] font-mono text-[#F8FAFC]">+880 1712 345678</span>
-              </div>
-              <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-[#0B1224] border border-[#1B2A45]">
-                <span className="font-semibold text-purple-400">Rocket</span>
-                <span className="text-[11px] font-mono text-[#F8FAFC]">+880 1712 345678</span>
-              </div>
+              {mfsMethods.map((pm) => (
+                <div
+                  key={pm.slug}
+                  className="flex items-center justify-between px-3 py-2 rounded-lg bg-[#0B1224] border border-[#1B2A45]"
+                >
+                  <span className={`font-semibold ${getMfsColor(pm.slug)}`}>
+                    {pm.displayName}
+                  </span>
+                  <span className="text-[11px] font-mono text-[#F8FAFC]">
+                    {pm.merchantNumber || "Available"}
+                  </span>
+                </div>
+              ))}
               <p className="text-[10px] text-[#94A3B8]/80 text-center italic">
-                (Send Money to the above number)
+                (Official receiving numbers)
               </p>
             </div>
 

@@ -19,10 +19,18 @@ import { useCartStore } from "@/store/cart";
 import { formatPrice } from "@/lib/utils";
 import { NAVIGATION_LINKS, APP_CONFIG } from "@/lib/constants";
 
-export function Header() {
+interface HeaderProps {
+  siteSettings?: Record<string, string>;
+}
+
+export function Header({ siteSettings }: HeaderProps = {}) {
   const router = useRouter();
   const { data: session } = useSession();
   const { toggleCart, getItemCount, getTotal } = useCartStore();
+
+  const fbLink = siteSettings?.social_facebook || APP_CONFIG.social.facebook;
+  const igLink = siteSettings?.social_instagram || APP_CONFIG.social.instagram;
+  const waLink = siteSettings?.social_whatsapp || APP_CONFIG.social.whatsapp;
 
   const [searchQuery, setSearchQuery] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -96,7 +104,7 @@ export function Header() {
             {/* Social Icons (Desktop) */}
             <div className="hidden xl:flex items-center gap-2 border-r border-[#1B2A45] pr-4">
               <a
-                href={APP_CONFIG.social.facebook}
+                href={fbLink}
                 target="_blank"
                 rel="noreferrer"
                 className="w-7 h-7 rounded-full bg-[#0B1224] border border-[#1B2A45] flex items-center justify-center text-[#94A3B8] hover:text-[#00D9FF] hover:border-[#00D9FF] transition-colors text-xs font-bold"
@@ -105,7 +113,7 @@ export function Header() {
                 f
               </a>
               <a
-                href={APP_CONFIG.social.instagram}
+                href={igLink}
                 target="_blank"
                 rel="noreferrer"
                 className="w-7 h-7 rounded-full bg-[#0B1224] border border-[#1B2A45] flex items-center justify-center text-[#94A3B8] hover:text-[#8B3DFF] hover:border-[#8B3DFF] transition-colors text-xs font-bold"
@@ -114,7 +122,7 @@ export function Header() {
                 in
               </a>
               <a
-                href={APP_CONFIG.social.whatsapp}
+                href={waLink.startsWith("http") ? waLink : `https://wa.me/${waLink.replace(/[^0-9]/g, "")}`}
                 target="_blank"
                 rel="noreferrer"
                 className="w-7 h-7 rounded-full bg-[#0B1224] border border-[#1B2A45] flex items-center justify-center text-[#94A3B8] hover:text-emerald-400 hover:border-emerald-400 transition-colors text-xs font-bold"
