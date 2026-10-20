@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
-  Sparkles,
   ExternalLink,
   LayoutDashboard,
   ShoppingBag,
@@ -14,11 +13,6 @@ import {
   CreditCard,
   Settings,
   LogOut,
-  Users,
-  Image as ImageIcon,
-  BarChart3,
-  Ticket,
-  Boxes,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -71,7 +65,7 @@ export function AdminSidebarClient({ user, orderCount = 0 }: AdminSidebarProps) 
 
   // Get initials for user avatar
   const getInitials = (name?: string | null) => {
-    if (!name) return "AD";
+    if (!name) return "DH";
     const parts = name.trim().split(" ");
     if (parts.length >= 2) {
       return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
@@ -80,18 +74,23 @@ export function AdminSidebarClient({ user, orderCount = 0 }: AdminSidebarProps) 
   };
 
   return (
-    <aside className="w-full md:w-64 bg-[#0A0D18] border-r border-[#1B2438] flex flex-col shrink-0 min-h-screen text-[#F8FAFC]">
+    <aside className="w-full md:w-64 bg-[#070B16] border-r border-[#1B2A45] flex flex-col shrink-0 min-h-screen text-[#F8FAFC]">
       {/* 1. Brand Header */}
       <div className="p-5 pb-4">
         <Link href="/admin" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#BE123C] via-[#E11D48] to-[#D946EF] p-0.5 shadow-[0_0_15px_rgba(225,29,72,0.4)] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-            <Sparkles className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 rounded-xl overflow-hidden bg-gradient-to-tr from-[#00D9FF] via-[#2563FF] to-[#8B3DFF] p-[1.5px] shadow-[0_0_15px_rgba(0,217,255,0.35)] shrink-0">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/images/logo.jpg"
+              alt="DigitalHub Logo"
+              className="w-full h-full object-cover rounded-[9px]"
+            />
           </div>
           <div className="flex flex-col">
             <span className="text-base font-extrabold tracking-tight text-[#F8FAFC]">
-              DigitalHub
+              Digital<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00D9FF] to-[#8B3DFF]">Hub</span>
             </span>
-            <span className="text-[10px] font-black uppercase tracking-widest text-[#F59E0B]">
+            <span className="text-[9px] font-bold uppercase tracking-widest text-[#00D9FF]">
               ADMIN PORTAL
             </span>
           </div>
@@ -102,10 +101,10 @@ export function AdminSidebarClient({ user, orderCount = 0 }: AdminSidebarProps) 
           <Link
             href="/"
             target="_blank"
-            className="w-full px-3.5 py-2 rounded-xl bg-[#111625] border border-[#1E293B] hover:border-[#00D9FF]/50 text-xs font-semibold text-[#CBD5E1] flex items-center justify-between group transition-all"
+            className="w-full px-3.5 py-2 rounded-xl bg-[#0B1224] border border-[#1B2A45] hover:border-[#00D9FF]/60 hover:bg-[#101A30] text-xs font-semibold text-[#94A3B8] hover:text-[#F8FAFC] flex items-center justify-between group transition-all"
           >
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34D399]" />
+              <span className="w-2 h-2 rounded-full bg-[#00D9FF] animate-pulse shadow-[0_0_8px_#00D9FF]" />
               <span className="group-hover:text-white transition-colors">
                 View Live Store
               </span>
@@ -117,7 +116,7 @@ export function AdminSidebarClient({ user, orderCount = 0 }: AdminSidebarProps) 
 
       {/* 3. Section Label: MANAGEMENT */}
       <div className="px-5 pt-3 pb-1.5">
-        <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#64748B]">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]/60">
           MANAGEMENT
         </span>
       </div>
@@ -134,17 +133,17 @@ export function AdminSidebarClient({ user, orderCount = 0 }: AdminSidebarProps) 
               key={item.name}
               href={item.href}
               className={cn(
-                "flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-semibold transition-all duration-200 group",
+                "flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 group",
                 isActive
-                  ? "bg-gradient-to-r from-[#BE123C] via-[#E11D48] to-[#BE123C] text-white font-bold shadow-[0_0_20px_rgba(225,29,72,0.4)]"
-                  : "text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#111625]"
+                  ? "bg-gradient-to-r from-[#00D9FF] via-[#2563FF] to-[#8B3DFF] text-[#050812] font-black shadow-[0_0_20px_rgba(0,217,255,0.35)]"
+                  : "text-[#94A3B8] hover:text-[#00D9FF] hover:bg-[#101A30]"
               )}
             >
               <div className="flex items-center gap-3">
                 <span
                   className={cn(
                     "transition-colors",
-                    isActive ? "text-white" : "text-[#94A3B8] group-hover:text-[#F8FAFC]"
+                    isActive ? "text-[#050812]" : "text-[#94A3B8] group-hover:text-[#00D9FF]"
                   )}
                 >
                   {item.icon}
@@ -157,8 +156,8 @@ export function AdminSidebarClient({ user, orderCount = 0 }: AdminSidebarProps) 
                   className={cn(
                     "px-2 py-0.5 rounded-full text-[10px] font-black",
                     isActive
-                      ? "bg-white text-[#BE123C]"
-                      : "bg-[#F59E0B]/20 text-[#F59E0B] border border-[#F59E0B]/30"
+                      ? "bg-[#050812] text-[#00D9FF]"
+                      : "bg-[#00D9FF]/10 text-[#00D9FF] border border-[#00D9FF]/30"
                   )}
                 >
                   {item.badge}
@@ -170,11 +169,11 @@ export function AdminSidebarClient({ user, orderCount = 0 }: AdminSidebarProps) 
       </nav>
 
       {/* 5. Bottom Admin User Profile Bar */}
-      <div className="p-4 border-t border-[#1B2438] bg-[#0A0D18]">
+      <div className="p-4 border-t border-[#1B2A45] bg-[#070B16]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5 min-w-0">
             {/* Avatar Circle with initials */}
-            <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#BE123C] to-[#E11D48] flex items-center justify-center text-white text-xs font-black shrink-0 shadow-md">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#00D9FF] via-[#2563FF] to-[#8B3DFF] flex items-center justify-center text-[#050812] text-xs font-black shrink-0 shadow-[0_0_10px_rgba(0,217,255,0.3)]">
               {getInitials(user?.name)}
             </div>
             <div className="truncate">
@@ -194,7 +193,7 @@ export function AdminSidebarClient({ user, orderCount = 0 }: AdminSidebarProps) 
           <button
             type="button"
             onClick={() => signOut({ callbackUrl: "/login" })}
-            className="p-2 rounded-xl text-[#94A3B8] hover:text-rose-400 hover:bg-[#111625] transition-colors shrink-0"
+            className="p-2 rounded-xl text-[#94A3B8] hover:text-rose-400 hover:bg-[#101A30] transition-colors shrink-0"
             title="Sign Out"
           >
             <LogOut className="w-4 h-4" />
