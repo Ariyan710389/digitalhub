@@ -5,7 +5,21 @@ import { prisma } from "@/lib/prisma";
 import { ProductDetailsClient } from "./ProductDetailsClient";
 import { ProductData } from "@/types";
 
-export const revalidate = 30; // ISR cache for fast page loads
+export const revalidate = 60; // ISR cache for fast page loads
+export const dynamicParams = true;
+
+export async function generateStaticParams() {
+  try {
+    const products = await prisma.product.findMany({
+      where: { isPublished: true, isDeleted: false },
+      select: { slug: true },
+    });
+    return products.map((p) => ({ slug: p.slug }));
+  } catch (error) {
+    console.error("generateStaticParams products error:", error);
+    return [];
+  }
+}
 
 interface ProductPageProps {
   params: Promise<{
@@ -76,15 +90,15 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
       stockStatus: v.stockStatus,
       isActive: v.isActive,
       deliveryInstructions: v.deliveryInstructions,
-      variationOptions: v.variationOptions.map((vo) => ({
+      variationOptions: (v.variationOptions || []).map((vo) => ({
         attribute: {
-          id: vo.attribute.id,
-          name: vo.attribute.name,
-          slug: vo.attribute.slug,
+          id: vo.attribute?.id || "",
+          name: vo.attribute?.name || "",
+          slug: vo.attribute?.slug || "",
         },
         option: {
-          id: vo.option.id,
-          value: vo.option.value,
+          id: vo.option?.id || "",
+          value: vo.option?.value || "",
         },
       })),
     })),

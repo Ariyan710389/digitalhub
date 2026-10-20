@@ -63,7 +63,7 @@ export function ProductDetailsClient({ product }: ProductDetailsClientProps) {
     let variationDesc = "";
     if (selectedVariation && selectedVariation.variationOptions) {
       variationDesc = selectedVariation.variationOptions
-        .map((vo) => `${vo.attribute.name}: ${vo.option.value}`)
+        .map((vo) => `${vo.attribute?.name || "Option"}: ${vo.option?.value || ""}`)
         .join(", ");
     }
 
@@ -204,7 +204,7 @@ export function ProductDetailsClient({ product }: ProductDetailsClientProps) {
                 const isSelected = v.id === selectedVariationId;
                 const label =
                   v.variationOptions && v.variationOptions.length > 0
-                    ? v.variationOptions.map((vo) => vo.option.value).join(" / ")
+                    ? v.variationOptions.map((vo) => vo.option?.value || "").join(" / ")
                     : v.sku || "Option";
 
                 return (

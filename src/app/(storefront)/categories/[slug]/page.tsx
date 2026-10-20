@@ -6,7 +6,21 @@ import { ProductCard } from "@/components/storefront/ProductCard";
 import { ProductData } from "@/types";
 import { ArrowLeft } from "lucide-react";
 
-export const revalidate = 30; // ISR cache for fast page loads
+export const revalidate = 60; // ISR cache for fast page loads
+export const dynamicParams = true;
+
+export async function generateStaticParams() {
+  try {
+    const categories = await prisma.category.findMany({
+      where: { isActive: true },
+      select: { slug: true },
+    });
+    return categories.map((c) => ({ slug: c.slug }));
+  } catch (error) {
+    console.error("generateStaticParams categories error:", error);
+    return [];
+  }
+}
 
 interface CategoryPageProps {
   params: Promise<{
@@ -84,15 +98,15 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
       stockStatus: v.stockStatus,
       isActive: v.isActive,
       deliveryInstructions: v.deliveryInstructions,
-      variationOptions: v.variationOptions.map((vo) => ({
+      variationOptions: (v.variationOptions || []).map((vo) => ({
         attribute: {
-          id: vo.attribute.id,
-          name: vo.attribute.name,
-          slug: vo.attribute.slug,
+          id: vo.attribute?.id || "",
+          name: vo.attribute?.name || "",
+          slug: vo.attribute?.slug || "",
         },
         option: {
-          id: vo.option.id,
-          value: vo.option.value,
+          id: vo.option?.id || "",
+          value: vo.option?.value || "",
         },
       })),
     })),
