@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -13,6 +13,8 @@ import {
   CreditCard,
   Settings,
   LogOut,
+  Menu,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -27,6 +29,7 @@ interface AdminSidebarProps {
 
 export function AdminSidebarClient({ user, orderCount = 0 }: AdminSidebarProps) {
   const pathname = usePathname();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const navItems = [
     {
@@ -73,30 +76,46 @@ export function AdminSidebarClient({ user, orderCount = 0 }: AdminSidebarProps) 
     return name.slice(0, 2).toUpperCase();
   };
 
-  return (
-    <aside className="w-full md:w-64 bg-[#070B16] border-r border-[#1B2A45] flex flex-col shrink-0 min-h-screen text-[#F8FAFC]">
-      {/* 1. Brand Header */}
+  const renderNavLinks = () => (
+    <div className="flex flex-col h-full">
+      {/* Brand Header */}
       <div className="p-5 pb-4">
-        <Link href="/admin" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-xl overflow-hidden bg-gradient-to-tr from-[#00D9FF] via-[#2563FF] to-[#8B3DFF] p-[1.5px] shadow-[0_0_15px_rgba(0,217,255,0.35)] shrink-0">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/images/logo.jpg"
-              alt="DigitalHub Logo"
-              className="w-full h-full object-cover rounded-[9px]"
-            />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-base font-extrabold tracking-tight text-[#F8FAFC]">
-              Digital<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00D9FF] to-[#8B3DFF]">Hub</span>
-            </span>
-            <span className="text-[9px] font-bold uppercase tracking-widest text-[#00D9FF]">
-              ADMIN PORTAL
-            </span>
-          </div>
-        </Link>
+        <div className="flex items-center justify-between">
+          <Link
+            href="/admin"
+            onClick={() => setMobileOpen(false)}
+            className="flex items-center gap-3 group"
+          >
+            <div className="w-10 h-10 rounded-xl overflow-hidden bg-gradient-to-tr from-[#00D9FF] via-[#2563FF] to-[#8B3DFF] p-[1.5px] shadow-[0_0_15px_rgba(0,217,255,0.35)] shrink-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/images/logo.jpg"
+                alt="DigitalHub Logo"
+                className="w-full h-full object-cover rounded-[9px]"
+              />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-base font-extrabold tracking-tight text-[#F8FAFC]">
+                Digital<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00D9FF] to-[#8B3DFF]">Hub</span>
+              </span>
+              <span className="text-[9px] font-bold uppercase tracking-widest text-[#00D9FF]">
+                ADMIN PORTAL
+              </span>
+            </div>
+          </Link>
 
-        {/* 2. View Live Store Pill Button */}
+          {/* Close button for mobile */}
+          <button
+            type="button"
+            onClick={() => setMobileOpen(false)}
+            className="md:hidden p-2 text-[#94A3B8] hover:text-white rounded-lg hover:bg-[#101A30]"
+            aria-label="Close Sidebar"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* View Live Store Pill Button */}
         <div className="mt-5">
           <Link
             href="/"
@@ -114,14 +133,14 @@ export function AdminSidebarClient({ user, orderCount = 0 }: AdminSidebarProps) 
         </div>
       </div>
 
-      {/* 3. Section Label: MANAGEMENT */}
+      {/* Section Label: MANAGEMENT */}
       <div className="px-5 pt-3 pb-1.5">
         <span className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]/60">
           MANAGEMENT
         </span>
       </div>
 
-      {/* 4. Menu Items */}
+      {/* Menu Items */}
       <nav className="flex-1 px-3 space-y-1.5 overflow-y-auto">
         {navItems.map((item) => {
           const isActive = item.exact
@@ -132,6 +151,7 @@ export function AdminSidebarClient({ user, orderCount = 0 }: AdminSidebarProps) 
             <Link
               key={item.name}
               href={item.href}
+              onClick={() => setMobileOpen(false)}
               className={cn(
                 "flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 group",
                 isActive
@@ -168,8 +188,8 @@ export function AdminSidebarClient({ user, orderCount = 0 }: AdminSidebarProps) 
         })}
       </nav>
 
-      {/* 5. Bottom Admin User Profile Bar */}
-      <div className="p-4 border-t border-[#1B2A45] bg-[#070B16]">
+      {/* Bottom Admin User Profile Bar */}
+      <div className="p-4 border-t border-[#1B2A45] bg-[#070B16] mt-auto">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5 min-w-0">
             {/* Avatar Circle with initials */}
@@ -200,6 +220,62 @@ export function AdminSidebarClient({ user, orderCount = 0 }: AdminSidebarProps) 
           </button>
         </div>
       </div>
-    </aside>
+    </div>
+  );
+
+  return (
+    <>
+      {/* 1. Mobile Top Navigation Bar (Shown only on small screens) */}
+      <header className="md:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-[#070B16] border-b border-[#1B2A45] w-full">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg overflow-hidden bg-gradient-to-tr from-[#00D9FF] to-[#8B3DFF] p-[1px]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/images/logo.jpg"
+              alt="Logo"
+              className="w-full h-full object-cover rounded-[7px]"
+            />
+          </div>
+          <div>
+            <span className="text-sm font-extrabold text-[#F8FAFC] block">
+              Digital<span className="text-[#00D9FF]">Hub</span>
+            </span>
+            <span className="text-[8px] font-bold uppercase tracking-wider text-[#00D9FF] block -mt-1">
+              Admin Portal
+            </span>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setMobileOpen(true)}
+          className="p-2 rounded-xl bg-[#0B1224] border border-[#1B2A45] text-[#94A3B8] hover:text-[#00D9FF] focus:outline-none"
+          aria-label="Open Menu"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+      </header>
+
+      {/* 2. Mobile Drawer Backdrop & Drawer */}
+      {mobileOpen && (
+        <div className="md:hidden fixed inset-0 z-50 flex">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity"
+            onClick={() => setMobileOpen(false)}
+          />
+
+          {/* Drawer Sidebar */}
+          <div className="relative w-72 max-w-[80vw] bg-[#070B16] border-r border-[#1B2A45] h-full shadow-2xl flex flex-col z-10">
+            {renderNavLinks()}
+          </div>
+        </div>
+      )}
+
+      {/* 3. Desktop Permanent Sidebar */}
+      <aside className="hidden md:flex w-64 bg-[#070B16] border-r border-[#1B2A45] flex-col shrink-0 sticky top-0 h-screen overflow-hidden text-[#F8FAFC]">
+        {renderNavLinks()}
+      </aside>
+    </>
   );
 }
