@@ -138,10 +138,10 @@ export function Header({ siteSettings }: HeaderProps = {}) {
                 {session.user.role === "ADMIN" && (
                   <Link
                     href="/admin"
-                    className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-amber-400 border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20"
+                    className="flex items-center gap-1 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-bold text-amber-400 border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 transition-colors"
                   >
                     <ShieldAlert className="h-3.5 w-3.5" />
-                    Admin
+                    <span>Admin</span>
                   </Link>
                 )}
                 <Link
@@ -284,6 +284,16 @@ export function Header({ siteSettings }: HeaderProps = {}) {
           </form>
 
           <nav className="flex flex-col space-y-1">
+            {session?.user && (session.user as any).role === "ADMIN" && (
+              <Link
+                href="/admin"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-2 px-3 py-2 text-sm text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded-xl font-bold mb-2 shadow-[0_0_10px_rgba(245,158,11,0.2)]"
+              >
+                <ShieldAlert className="h-4 w-4" />
+                <span>Open Admin Portal</span>
+              </Link>
+            )}
             {NAVIGATION_LINKS.map((item) => (
               <div key={item.name}>
                 <Link
