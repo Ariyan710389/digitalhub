@@ -1,8 +1,31 @@
 import React from "react";
+import { prisma } from "@/lib/prisma";
 import { APP_CONFIG } from "@/lib/constants";
 import { MapPin, Phone, Mail, Clock, MessageSquare } from "lucide-react";
 
-export default function ContactPage() {
+export const revalidate = 30;
+
+export default async function ContactPage() {
+  let settings: Record<string, string> = {};
+
+  try {
+    const settingsList = await prisma.siteSetting.findMany();
+    settingsList.forEach((s) => {
+      settings[s.key] = s.value;
+    });
+  } catch (err) {
+    console.error("Failed to load siteSettings on contact page:", err);
+  }
+
+  const address = settings.business_address || APP_CONFIG.contact.address;
+  const phone = settings.contact_phone || APP_CONFIG.contact.phone;
+  const email = settings.contact_email || APP_CONFIG.contact.email;
+  const supportHours = settings.support_hours || APP_CONFIG.contact.supportHours;
+  const whatsapp = settings.social_whatsapp || APP_CONFIG.social.whatsapp;
+  const whatsappUrl = whatsapp.startsWith("http")
+    ? whatsapp
+    : `https://wa.me/${whatsapp.replace(/[^0-9]/g, "")}`;
+
   return (
     <div className="py-14 bg-[#050812] min-h-[70vh]">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
@@ -28,7 +51,7 @@ export default function ContactPage() {
                 <MapPin className="h-5 w-5 text-[#00D9FF] shrink-0 mt-0.5" />
                 <div>
                   <span className="font-bold text-[#F8FAFC] block">Office Address</span>
-                  <span className="text-[#94A3B8]">{APP_CONFIG.contact.address}</span>
+                  <span className="text-[#94A3B8]">{address}</span>
                 </div>
               </div>
 
@@ -36,8 +59,8 @@ export default function ContactPage() {
                 <Phone className="h-5 w-5 text-emerald-400 shrink-0 mt-0.5" />
                 <div>
                   <span className="font-bold text-[#F8FAFC] block">Phone & WhatsApp</span>
-                  <a href={`tel:${APP_CONFIG.contact.phone}`} className="text-[#00D9FF] hover:underline font-mono">
-                    {APP_CONFIG.contact.phone}
+                  <a href={`tel:${phone.replace(/\s+/g, "")}`} className="text-[#00D9FF] hover:underline font-mono">
+                    {phone}
                   </a>
                 </div>
               </div>
@@ -46,8 +69,8 @@ export default function ContactPage() {
                 <Mail className="h-5 w-5 text-purple-400 shrink-0 mt-0.5" />
                 <div>
                   <span className="font-bold text-[#F8FAFC] block">Email Address</span>
-                  <a href={`mailto:${APP_CONFIG.contact.email}`} className="text-[#00D9FF] hover:underline">
-                    {APP_CONFIG.contact.email}
+                  <a href={`mailto:${email}`} className="text-[#00D9FF] hover:underline">
+                    {email}
                   </a>
                 </div>
               </div>
@@ -56,7 +79,7 @@ export default function ContactPage() {
                 <Clock className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
                 <div>
                   <span className="font-bold text-[#F8FAFC] block">Operating Hours</span>
-                  <span className="text-[#94A3B8]">{APP_CONFIG.contact.supportHours}</span>
+                  <span className="text-[#94A3B8]">{supportHours}</span>
                 </div>
               </div>
             </div>
@@ -73,7 +96,7 @@ export default function ContactPage() {
             </p>
             <div className="pt-4">
               <a
-                href={APP_CONFIG.social.whatsapp}
+                href={whatsappUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs shadow-lg shadow-emerald-500/20 transition-all"
