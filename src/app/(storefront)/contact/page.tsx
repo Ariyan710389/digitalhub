@@ -17,6 +17,10 @@ export default async function ContactPage() {
     console.error("Failed to load siteSettings on contact page:", err);
   }
 
+  const pageTitle = settings.contact_title || "Contact DigitalHub Support";
+  const pageSubtitle =
+    settings.contact_subtitle ||
+    "Have a question about an order, custom website development, or subscription renewal? Reach out to us anytime.";
   const address = settings.business_address || APP_CONFIG.contact.address;
   const phone = settings.contact_phone || APP_CONFIG.contact.phone;
   const email = settings.contact_email || APP_CONFIG.contact.email;
@@ -25,6 +29,9 @@ export default async function ContactPage() {
   const whatsappUrl = whatsapp.startsWith("http")
     ? whatsapp
     : `https://wa.me/${whatsapp.replace(/[^0-9]/g, "")}`;
+  const whatsappDesc =
+    settings.contact_whatsapp_desc ||
+    "For instant response regarding bKash/Nagad verification, license keys, or project quotes, contact our live representative on WhatsApp.";
 
   return (
     <div className="py-14 bg-[#050812] min-h-[70vh]">
@@ -34,10 +41,10 @@ export default async function ContactPage() {
             Get In Touch
           </span>
           <h1 className="text-3xl font-extrabold text-[#F8FAFC]">
-            Contact DigitalHub Support
+            {pageTitle}
           </h1>
           <p className="text-xs text-[#94A3B8]">
-            Have a question about an order, custom website development, or subscription renewal? Reach out to us anytime.
+            {pageSubtitle}
           </p>
         </div>
 
@@ -92,7 +99,7 @@ export default async function ContactPage() {
               Instant WhatsApp Support
             </h2>
             <p className="text-xs text-[#94A3B8] leading-relaxed">
-              For instant response regarding bKash/Nagad verification, license keys, or project quotes, contact our live representative on WhatsApp.
+              {whatsappDesc}
             </p>
             <div className="pt-4">
               <a
