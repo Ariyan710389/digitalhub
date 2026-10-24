@@ -194,6 +194,23 @@ export async function POST(req: Request) {
         });
       }
 
+      // 5. Automatically increment totalSold count for each purchased product
+      for (const item of items) {
+        if (item.productId) {
+          const qty = Math.max(1, Number(item.quantity) || 1);
+          try {
+            await tx.product.update({
+              where: { id: item.productId },
+              data: {
+                totalSold: { increment: qty },
+              },
+            });
+          } catch (err) {
+            console.error("Failed to increment product totalSold:", err);
+          }
+        }
+      }
+
       return order;
     });
 
