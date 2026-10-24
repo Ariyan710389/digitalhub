@@ -14,6 +14,8 @@ import {
   X,
   Phone,
   ShieldAlert,
+  GraduationCap,
+  Package,
 } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 import { formatPrice } from "@/lib/utils";
@@ -146,11 +148,12 @@ export function Header({ siteSettings }: HeaderProps = {}) {
                 )}
                 <Link
                   href="/account"
-                  className="flex items-center gap-1.5 text-xs font-medium text-[#F8FAFC] hover:text-[#00D9FF] px-2 py-1.5"
+                  className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-[#0B1224] border border-[#1B2A45] hover:border-[#00D9FF]/50 text-[#F8FAFC] hover:text-[#00D9FF] transition-all shadow-sm"
+                  title="My Purchased Services, Courses & Orders"
                 >
-                  <User className="h-4 w-4 text-[#00D9FF]" />
-                  <span className="hidden sm:inline truncate max-w-[100px]">
-                    {session.user.name.split(" ")[0]}
+                  <GraduationCap className="h-4 w-4 text-[#00D9FF]" />
+                  <span className="hidden sm:inline truncate max-w-[120px]">
+                    My Services
                   </span>
                 </Link>
                 <button
@@ -288,10 +291,20 @@ export function Header({ siteSettings }: HeaderProps = {}) {
               <Link
                 href="/admin"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-2 px-3 py-2 text-sm text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded-xl font-bold mb-2 shadow-[0_0_10px_rgba(245,158,11,0.2)]"
+                className="flex items-center gap-2 px-3 py-2 text-sm text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded-xl font-bold mb-1 shadow-[0_0_10px_rgba(245,158,11,0.2)]"
               >
                 <ShieldAlert className="h-4 w-4" />
                 <span>Open Admin Portal</span>
+              </Link>
+            )}
+            {session?.user && (
+              <Link
+                href="/account"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-2 px-3 py-2 text-sm text-[#00D9FF] bg-[#00D9FF]/10 border border-[#00D9FF]/30 rounded-xl font-bold mb-2 shadow-[0_0_10px_rgba(0,217,255,0.2)]"
+              >
+                <GraduationCap className="h-4 w-4" />
+                <span>My Services & Orders</span>
               </Link>
             )}
             {NAVIGATION_LINKS.map((item) => (
