@@ -152,11 +152,11 @@ export function Header({ siteSettings }: HeaderProps = {}) {
                 <Link
                   href="/account"
                   className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-[#0B1224] border border-[#1B2A45] hover:border-[#00D9FF]/50 text-[#F8FAFC] hover:text-[#00D9FF] transition-all shadow-sm"
-                  title="My Purchased Services, Courses & Orders"
+                  title="Profile & Account"
                 >
-                  <GraduationCap className="h-4 w-4 text-[#00D9FF]" />
+                  <User className="h-4 w-4 text-[#00D9FF]" />
                   <span className="hidden sm:inline truncate max-w-[120px]">
-                    My Services
+                    Profile
                   </span>
                 </Link>
                 <button
@@ -306,8 +306,8 @@ export function Header({ siteSettings }: HeaderProps = {}) {
                 onClick={() => setMobileMenuOpen(false)}
                 className="flex items-center gap-2 px-3 py-2 text-sm text-[#00D9FF] bg-[#00D9FF]/10 border border-[#00D9FF]/30 rounded-xl font-bold mb-2 shadow-[0_0_10px_rgba(0,217,255,0.2)]"
               >
-                <GraduationCap className="h-4 w-4" />
-                <span>My Services & Orders</span>
+                <User className="h-4 w-4" />
+                <span>Profile</span>
               </Link>
             )}
             {NAVIGATION_LINKS.map((item) => (
