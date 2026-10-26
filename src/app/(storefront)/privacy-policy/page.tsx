@@ -1,7 +1,21 @@
 import React from "react";
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 
 export const revalidate = 0;
+
+export const metadata: Metadata = {
+  title: "Privacy Policy | DigitalHub Bangladesh",
+  description:
+    "Review DigitalHub's privacy policy regarding data collection, order processing, and customer privacy protection in Bangladesh.",
+  alternates: {
+    canonical: "/privacy-policy",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+};
 
 export default async function PrivacyPolicyPage() {
   const page = await prisma.page.findUnique({

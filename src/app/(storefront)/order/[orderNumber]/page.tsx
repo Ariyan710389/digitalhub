@@ -1,6 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { formatPrice, getOrderStatusLabel } from "@/lib/utils";
 import {
@@ -14,6 +15,14 @@ import {
 } from "lucide-react";
 
 export const revalidate = 0;
+
+export const metadata: Metadata = {
+  title: "Order Details | DigitalHub",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 interface OrderPageProps {
   params: Promise<{

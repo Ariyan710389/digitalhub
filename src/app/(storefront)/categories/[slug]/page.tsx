@@ -1,6 +1,7 @@
-import React from "react";
+import React, { cache } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { ProductCard } from "@/components/storefront/ProductCard";
 import { ProductData } from "@/types";
@@ -9,18 +10,7 @@ import { ArrowLeft } from "lucide-react";
 export const revalidate = 60; // ISR cache for fast page loads
 export const dynamicParams = true;
 
-export async function generateStaticParams() {
-  try {
-    const categories = await prisma.category.findMany({
-      where: { isActive: true },
-      select: { slug: true },
-    });
-    return categories.map((c) => ({ slug: c.slug }));
-  } catch (error) {
-    console.error("generateStaticParams categories error:", error);
-    return [];
-  }
-}
+const siteUrl = process.env.NEXTAUTH_URL || "https://digitalhub-mocha.vercel.app";
 
 interface CategoryPageProps {
   params: Promise<{
@@ -28,10 +18,9 @@ interface CategoryPageProps {
   }>;
 }
 
-export default async function CategoryPage({ params }: CategoryPageProps) {
-  const { slug } = await params;
-
-  const category = await prisma.category.findUnique({
+// React cache deduplicates DB calls between generateMetadata and Page component
+const getCategory = cache(async (slug: string) => {
+  return await prisma.category.findUnique({
     where: { slug },
     include: {
       products: {
@@ -60,6 +49,79 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
       },
     },
   });
+});
+
+export async function generateStaticParams() {
+  try {
+    const categories = await prisma.category.findMany({
+      where: { isActive: true },
+      select: { slug: true },
+    });
+    return categories.map((c) => ({ slug: c.slug }));
+  } catch (error) {
+    console.error("generateStaticParams categories error:", error);
+    return [];
+  }
+}
+
+export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {
+  const { slug } = await params;
+
+  try {
+    const category = await getCategory(slug);
+
+    if (!category || !category.isActive) {
+      return {
+        title: "Category Not Found",
+        robots: { index: false, follow: false },
+      };
+    }
+
+    const title = `${category.name} in Bangladesh | DigitalHub`;
+    const description =
+      category.description ||
+      `Explore premium ${category.name} solutions with instant delivery and secure bKash, Nagad, and Rocket payments in Bangladesh at DigitalHub.`;
+
+    const categoryCanonical = `/categories/${slug}`;
+    const ogImage = category.image || "/images/logo.jpg";
+
+    return {
+      title,
+      description,
+      alternates: {
+        canonical: categoryCanonical,
+      },
+      openGraph: {
+        title,
+        description,
+        url: `${siteUrl}${categoryCanonical}`,
+        type: "website",
+        images: [
+          {
+            url: ogImage.startsWith("http") ? ogImage : `${siteUrl}${ogImage}`,
+            width: 800,
+            height: 600,
+            alt: category.name,
+          },
+        ],
+      },
+      twitter: {
+        card: "summary_large_image",
+        title,
+        description,
+        images: [ogImage.startsWith("http") ? ogImage : `${siteUrl}${ogImage}`],
+      },
+    };
+  } catch {
+    return {
+      title: "Category | DigitalHub",
+    };
+  }
+}
+
+export default async function CategoryPage({ params }: CategoryPageProps) {
+  const { slug } = await params;
+  const category = await getCategory(slug);
 
   if (!category) {
     notFound();
@@ -112,15 +174,74 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
     })),
   }));
 
+  // Structured Data (CollectionPage + BreadcrumbList)
+  const collectionSchema = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: category.name,
+    description: category.description || `Browse authentic ${category.name} at DigitalHub Bangladesh.`,
+    url: `${siteUrl}/categories/${category.slug}`,
+    mainEntity: {
+      "@type": "ItemList",
+      itemListElement: products.map((prod, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        url: `${siteUrl}/products/${prod.slug}`,
+        name: prod.name,
+      })),
+    },
+  };
+
+  const breadcrumbsSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: siteUrl,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Categories",
+        item: `${siteUrl}/categories`,
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: category.name,
+        item: `${siteUrl}/categories/${category.slug}`,
+      },
+    ],
+  };
+
   return (
     <div className="py-12 bg-[#050812] min-h-screen">
+      {/* Schema.org CollectionPage & BreadcrumbList structured data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(collectionSchema),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(breadcrumbsSchema),
+        }}
+      />
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 text-xs font-semibold text-[#94A3B8] hover:text-[#00D9FF] transition-colors mb-6"
-        >
-          <ArrowLeft className="h-4 w-4" /> Back to Home
-        </Link>
+        <nav aria-label="Breadcrumb" className="mb-6">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-[#94A3B8] hover:text-[#00D9FF] transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" /> Back to Home
+          </Link>
+        </nav>
 
         {/* Category Header */}
         <div className="rounded-3xl bg-[#0B1224] border border-[#1B2A45] p-8 mb-10 shadow-xl">

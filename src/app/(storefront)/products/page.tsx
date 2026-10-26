@@ -1,9 +1,34 @@
 import React from "react";
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { ProductCard } from "@/components/storefront/ProductCard";
 import { ProductData } from "@/types";
 
 export const revalidate = 30; // ISR cache for fast page loads
+
+const siteUrl = process.env.NEXTAUTH_URL || "https://digitalhub-mocha.vercel.app";
+
+export const metadata: Metadata = {
+  title: "All Digital Products & Services — Bangladesh Store | DigitalHub",
+  description:
+    "Explore our complete catalog of authentic AI tools, ChatGPT Plus, Photoshop, digital marketing services, web development packages, and online courses with bKash/Nagad.",
+  alternates: {
+    canonical: "/products",
+  },
+  openGraph: {
+    title: "All Digital Products & Services — Bangladesh Store | DigitalHub",
+    description:
+      "Buy genuine digital licenses, AI subscriptions, and software with instant delivery and secure local Bangladesh payments.",
+    url: `${siteUrl}/products`,
+    type: "website",
+    images: [{ url: "/images/logo.jpg", width: 800, height: 800, alt: "DigitalHub Catalog" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "All Digital Products & Services | DigitalHub Bangladesh",
+    description: "Browse verified digital products with fast delivery in Bangladesh.",
+  },
+};
 
 export default async function AllProductsPage() {
   const rawProducts = await prisma.product.findMany({
@@ -78,8 +103,58 @@ export default async function AllProductsPage() {
     })),
   }));
 
+  const productsSchema = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: "All Products — DigitalHub",
+    description: "Complete catalog of authentic digital products and software licenses in Bangladesh.",
+    url: `${siteUrl}/products`,
+    mainEntity: {
+      "@type": "ItemList",
+      itemListElement: products.map((prod, idx) => ({
+        "@type": "ListItem",
+        position: idx + 1,
+        url: `${siteUrl}/products/${prod.slug}`,
+        name: prod.name,
+      })),
+    },
+  };
+
+  const breadcrumbsSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: siteUrl,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Products",
+        item: `${siteUrl}/products`,
+      },
+    ],
+  };
+
   return (
     <div className="py-12 bg-[#050812] min-h-screen">
+      {/* Schema.org structured data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(productsSchema),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(breadcrumbsSchema),
+        }}
+      />
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="rounded-3xl bg-[#0B1224] border border-[#1B2A45] p-8 mb-10 shadow-xl">
           <div className="flex items-center gap-3 mb-2">

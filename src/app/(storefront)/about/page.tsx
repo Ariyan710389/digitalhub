@@ -1,6 +1,22 @@
 import React from "react";
-import { APP_CONFIG } from "@/lib/constants";
-import { Zap, ShieldCheck, Headphones, Award } from "lucide-react";
+import type { Metadata } from "next";
+import { Zap, ShieldCheck, Headphones } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "About Us — Bangladesh's Premier Digital Marketplace | DigitalHub",
+  description:
+    "Learn about DigitalHub, our mission to make world-class AI subscriptions, developer licenses, online courses, and digital marketing easily accessible across Bangladesh.",
+  alternates: {
+    canonical: "/about",
+  },
+  openGraph: {
+    title: "About Us — DigitalHub Bangladesh",
+    description:
+      "Empowering Bangladesh with genuine digital tools, AI subscriptions, and development services.",
+    url: "https://digitalhub-mocha.vercel.app/about",
+    type: "website",
+  },
+};
 
 export default function AboutPage() {
   return (

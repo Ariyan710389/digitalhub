@@ -8,8 +8,8 @@ if (databaseUrl.includes(".pooler.supabase.com:5432")) {
   databaseUrl = databaseUrl.replace(":5432", ":6543");
   if (!databaseUrl.includes("pgbouncer=true")) {
     databaseUrl += databaseUrl.includes("?")
-      ? "&pgbouncer=true&connection_limit=3"
-      : "?pgbouncer=true&connection_limit=3";
+      ? "&pgbouncer=true&connection_limit=5&pool_timeout=30"
+      : "?pgbouncer=true&connection_limit=5&pool_timeout=30";
   }
 }
 

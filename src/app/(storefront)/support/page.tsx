@@ -1,5 +1,22 @@
 import React from "react";
-import { HelpCircle, ChevronRight, Zap, ShieldCheck } from "lucide-react";
+import type { Metadata } from "next";
+import { HelpCircle } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "Support & FAQ — Help Center | DigitalHub Bangladesh",
+  description:
+    "Find answers to frequently asked questions about bKash/Nagad payments, account delivery, license warranties, and digital service onboarding at DigitalHub.",
+  alternates: {
+    canonical: "/support",
+  },
+  openGraph: {
+    title: "Support & FAQ — DigitalHub Bangladesh",
+    description:
+      "24/7 customer help center for digital orders, payment verification, and refund guarantees.",
+    url: "https://digitalhub-mocha.vercel.app/support",
+    type: "website",
+  },
+};
 
 export default function SupportPage() {
   const faqs = [
@@ -25,8 +42,29 @@ export default function SupportPage() {
     },
   ];
 
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqs.map((faq) => ({
+      "@type": "Question",
+      name: faq.q,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: faq.a,
+      },
+    })),
+  };
+
   return (
     <div className="py-14 bg-[#050812] min-h-[70vh]">
+      {/* Schema.org FAQPage structured data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(faqSchema),
+        }}
+      />
+
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
         <div className="text-center max-w-xl mx-auto space-y-3">
           <span className="text-xs font-bold uppercase tracking-wider text-[#00D9FF]">

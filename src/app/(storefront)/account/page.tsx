@@ -1,4 +1,5 @@
 import React from "react";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -10,6 +11,14 @@ import {
 } from "./CustomerAccountClient";
 
 export const revalidate = 0; // Dynamic real-time customer dashboard
+
+export const metadata: Metadata = {
+  title: "My Account & Purchased Services | DigitalHub",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default async function CustomerAccountPage() {
   const session = await getServerSession(authOptions);

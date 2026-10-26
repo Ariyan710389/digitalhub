@@ -1,9 +1,26 @@
 import React from "react";
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { APP_CONFIG } from "@/lib/constants";
 import { MapPin, Phone, Mail, Clock, MessageSquare } from "lucide-react";
 
 export const revalidate = 30;
+
+export const metadata: Metadata = {
+  title: "Contact DigitalHub Support — Phone, WhatsApp & Office in Dhaka",
+  description:
+    "Contact DigitalHub Bangladesh support team via WhatsApp, phone, or email for instant order verification, custom web development quotes, and subscription renewals.",
+  alternates: {
+    canonical: "/contact",
+  },
+  openGraph: {
+    title: "Contact DigitalHub Support — Bangladesh",
+    description:
+      "Get in touch with DigitalHub 24/7 support for bKash/Nagad verification, license keys, and project inquiries.",
+    url: "https://digitalhub-mocha.vercel.app/contact",
+    type: "website",
+  },
+};
 
 export default async function ContactPage() {
   let settings: Record<string, string> = {};
@@ -73,7 +90,7 @@ export default async function ContactPage() {
               </div>
 
               <div className="flex items-start gap-3">
-                <Mail className="h-5 w-5 text-purple-400 shrink-0 mt-0.5" />
+                <Mail className="h-5 w-4 text-purple-400 shrink-0 mt-0.5" />
                 <div>
                   <span className="font-bold text-[#F8FAFC] block">Email Address</span>
                   <a href={`mailto:${email}`} className="text-[#00D9FF] hover:underline">

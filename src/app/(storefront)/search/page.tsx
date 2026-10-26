@@ -1,11 +1,20 @@
 import React from "react";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { ProductCard } from "@/components/storefront/ProductCard";
 import { ProductData } from "@/types";
 import { Search, ArrowLeft } from "lucide-react";
 
 export const revalidate = 0;
+
+export const metadata: Metadata = {
+  title: "Search Products & Services | DigitalHub",
+  robots: {
+    index: false,
+    follow: true,
+  },
+};
 
 interface SearchPageProps {
   searchParams: Promise<{

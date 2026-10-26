@@ -1,7 +1,21 @@
 import React from "react";
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 
 export const revalidate = 0;
+
+export const metadata: Metadata = {
+  title: "Refund & Replacement Policy | DigitalHub Bangladesh",
+  description:
+    "100% money-back and replacement guarantee for invalid keys or software activation issues at DigitalHub.",
+  alternates: {
+    canonical: "/refund-policy",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+};
 
 export default async function RefundPolicyPage() {
   const page = await prisma.page.findUnique({

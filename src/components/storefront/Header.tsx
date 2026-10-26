@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import {
@@ -56,10 +57,12 @@ export function Header({ siteSettings }: HeaderProps = {}) {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 shrink-0 group">
             <div className="relative w-10 h-10 rounded-xl overflow-hidden bg-gradient-to-tr from-[#00D9FF] via-[#2563FF] to-[#8B3DFF] p-[1.5px] shadow-[0_0_15px_rgba(0,217,255,0.3)]">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <Image
                 src="/images/logo.jpg"
-                alt="DigitalHub Logo"
+                alt="DigitalHub Bangladesh Logo"
+                width={40}
+                height={40}
+                priority
                 className="w-full h-full object-cover rounded-[9px]"
               />
             </div>

@@ -1,7 +1,21 @@
 import React from "react";
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 
 export const revalidate = 0;
+
+export const metadata: Metadata = {
+  title: "Terms and Conditions | DigitalHub Bangladesh",
+  description:
+    "Terms of service, licensing rules, and delivery conditions for digital purchases at DigitalHub.",
+  alternates: {
+    canonical: "/terms-conditions",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+};
 
 export default async function TermsConditionsPage() {
   const page = await prisma.page.findUnique({

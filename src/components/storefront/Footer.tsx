@@ -1,5 +1,6 @@
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   MapPin,
   Phone,
@@ -69,10 +70,11 @@ export function Footer({ siteSettings, paymentMethods }: FooterProps) {
           <div className="lg:col-span-2 space-y-4">
             <Link href="/" className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl overflow-hidden bg-gradient-to-tr from-[#00D9FF] via-[#2563FF] to-[#8B3DFF] p-[1.5px]">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <Image
                   src="/images/logo.jpg"
-                  alt="DigitalHub Logo"
+                  alt="DigitalHub Bangladesh Logo"
+                  width={36}
+                  height={36}
                   className="w-full h-full object-cover rounded-[8px]"
                 />
               </div>

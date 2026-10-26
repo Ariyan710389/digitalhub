@@ -1,4 +1,5 @@
 import React from "react";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -6,6 +7,14 @@ import { prisma } from "@/lib/prisma";
 import { AdminSidebarClient } from "@/components/admin/AdminSidebarClient";
 
 export const revalidate = 0;
+
+export const metadata: Metadata = {
+  title: "Admin Panel | DigitalHub",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default async function AdminLayout({
   children,

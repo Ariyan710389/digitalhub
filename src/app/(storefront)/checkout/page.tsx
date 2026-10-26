@@ -1,8 +1,17 @@
 import React from "react";
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { CheckoutClient, PaymentMethodItem } from "./CheckoutClient";
 
 export const revalidate = 0; // Always fresh payment methods directly from database
+
+export const metadata: Metadata = {
+  title: "Secure Checkout | DigitalHub Bangladesh",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default async function CheckoutPage() {
   let methods: PaymentMethodItem[] = [];
