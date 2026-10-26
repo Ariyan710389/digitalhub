@@ -7,6 +7,7 @@ import {
   Mail,
   Clock,
   ShieldCheck,
+  CheckCircle2,
 } from "lucide-react";
 import { APP_CONFIG } from "@/lib/constants";
 
@@ -36,28 +37,6 @@ export function Footer({ siteSettings, paymentMethods }: FooterProps) {
   const ytLink = siteSettings?.social_youtube || APP_CONFIG.social.youtube;
   const waLink = siteSettings?.social_whatsapp || APP_CONFIG.social.whatsapp;
   const tgLink = siteSettings?.social_telegram || APP_CONFIG.social.telegram;
-
-  // Filter payment methods for display (exclude COD if needed, or show active MFS)
-  const mfsMethods = paymentMethods && paymentMethods.length > 0
-    ? paymentMethods.filter((pm) => pm.slug !== "cod")
-    : [
-        { slug: "bkash", displayName: "bKash", merchantNumber: "01712345678" },
-        { slug: "nagad", displayName: "Nagad", merchantNumber: "01712345678" },
-        { slug: "rocket", displayName: "Rocket", merchantNumber: "01712345678" },
-      ];
-
-  const getMfsColor = (slug: string) => {
-    switch (slug) {
-      case "bkash":
-        return "text-pink-400";
-      case "nagad":
-        return "text-orange-400";
-      case "rocket":
-        return "text-purple-400";
-      default:
-        return "text-[#00D9FF]";
-    }
-  };
 
   return (
     <footer className="w-full bg-[#070B16] border-t border-[#1B2A45] text-[#94A3B8] text-xs">
@@ -211,37 +190,30 @@ export function Footer({ siteSettings, paymentMethods }: FooterProps) {
             </ul>
           </div>
 
-          {/* Column 4: Payment Methods & Safe Badge */}
+          {/* Column 4: Security & Buyer Protection */}
           <div className="space-y-4">
             <h4 className="text-xs font-semibold text-[#F8FAFC] uppercase tracking-wider">
-              Payment Methods
+              Security & Trust
             </h4>
-            <div className="space-y-2">
-              {mfsMethods.map((pm) => (
-                <div
-                  key={pm.slug}
-                  className="flex items-center justify-between px-3 py-2 rounded-lg bg-[#0B1224] border border-[#1B2A45]"
-                >
-                  <span className={`font-semibold ${getMfsColor(pm.slug)}`}>
-                    {pm.displayName}
-                  </span>
-                  <span className="text-[11px] font-mono text-[#F8FAFC]">
-                    {pm.merchantNumber || "Available"}
-                  </span>
-                </div>
-              ))}
-              <p className="text-[10px] text-[#94A3B8]/80 text-center italic">
-                (Official receiving numbers)
-              </p>
-            </div>
 
             {/* Safe & Secure Box */}
-            <div className="p-3 rounded-xl bg-[#080D1B] border border-cyan-500/20 flex items-start gap-2.5">
-              <ShieldCheck className="h-6 w-6 text-[#00D9FF] shrink-0" />
+            <div className="p-3.5 rounded-xl bg-[#0B1224] border border-[#1B2A45] flex items-start gap-2.5">
+              <ShieldCheck className="h-5 w-5 text-[#00D9FF] shrink-0 mt-0.5" />
               <div>
                 <span className="text-xs font-semibold text-[#F8FAFC] block">Safe & Secure</span>
-                <span className="text-[10px] text-[#94A3B8] leading-tight block">
-                  Your data is safe with us. We use industry-standard security measures.
+                <span className="text-[11px] text-[#94A3B8] leading-relaxed block mt-0.5">
+                  Your personal data and orders are protected with industry-standard encryption.
+                </span>
+              </div>
+            </div>
+
+            {/* Buyer Protection Box */}
+            <div className="p-3.5 rounded-xl bg-[#0B1224] border border-[#1B2A45] flex items-start gap-2.5">
+              <CheckCircle2 className="h-5 w-5 text-emerald-400 shrink-0 mt-0.5" />
+              <div>
+                <span className="text-xs font-semibold text-[#F8FAFC] block">100% Genuine Guarantee</span>
+                <span className="text-[11px] text-[#94A3B8] leading-relaxed block mt-0.5">
+                  All subscriptions and licenses are authentic with instant replacement warranty.
                 </span>
               </div>
             </div>
