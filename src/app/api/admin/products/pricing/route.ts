@@ -61,18 +61,65 @@ export async function POST(req: Request) {
 
     // Perform database updates inside a transaction
     await prisma.$transaction(async (tx) => {
-      // 1. Update base product pricing
-      await tx.product.update({
-        where: { id: productId },
-        data: {
-          regularPrice: dbRegularPrice,
-          salePrice: dbSalePrice,
-        },
+      // Fetch existing variations for this product to ensure proper sync
+      const existingVariations = await tx.productVariation.findMany({
+        where: { productId },
+        orderBy: { createdAt: "asc" },
       });
 
-      // 2. Update variations if provided
-      if (variations && Array.isArray(variations) && variations.length > 0) {
-        for (const v of variations) {
+      // 1. If product has exactly 1 variation (e.g., Lifetime Access, 1 Year):
+      // The single variation MUST ALWAYS be 100% in sync with the base price!
+      if (existingVariations.length === 1) {
+        const singleVar = existingVariations[0];
+        // If variation input is provided with specific numbers, use them, otherwise use base price
+        const vInput = variations && variations.length > 0 ? variations[0] : null;
+
+        let vRegular = dbRegularPrice;
+        let vSale = dbSalePrice;
+
+        if (vInput) {
+          const vSellPaisa = Math.round(Number(vInput.sellPrice || 0) * 100);
+          const vRegPaisa =
+            vInput.regularPrice !== undefined && vInput.regularPrice !== null && Number(vInput.regularPrice) > 0
+              ? Math.round(Number(vInput.regularPrice) * 100)
+              : null;
+
+          if (vRegPaisa && vRegPaisa > vSellPaisa) {
+            vRegular = vRegPaisa;
+            vSale = vSellPaisa;
+          } else {
+            vRegular = vSellPaisa;
+            vSale = null;
+          }
+        }
+
+        // Sync both base product and the single variation to these exact prices
+        await tx.product.update({
+          where: { id: productId },
+          data: {
+            regularPrice: vRegular,
+            salePrice: vSale,
+          },
+        });
+
+        await tx.productVariation.update({
+          where: { id: singleVar.id },
+          data: {
+            regularPrice: vRegular,
+            salePrice: vSale,
+          },
+        });
+
+        dbRegularPrice = vRegular;
+        dbSalePrice = vSale;
+      }
+      // 2. If product has multiple variations (e.g., 1 Month, 3 Months, 1 Year):
+      else if (existingVariations.length > 1 && variations && variations.length > 0) {
+        let firstVarRegular = dbRegularPrice;
+        let firstVarSale = dbSalePrice;
+
+        for (let i = 0; i < variations.length; i++) {
+          const v = variations[i];
           if (!v.id) continue;
 
           const vSellPaisa = Math.round(Number(v.sellPrice || 0) * 100);
@@ -92,6 +139,11 @@ export async function POST(req: Request) {
             vDbSalePrice = null;
           }
 
+          if (i === 0) {
+            firstVarRegular = vDbRegularPrice;
+            firstVarSale = vDbSalePrice;
+          }
+
           await tx.productVariation.update({
             where: { id: v.id },
             data: {
@@ -100,16 +152,36 @@ export async function POST(req: Request) {
             },
           });
         }
+
+        // Update base product to match the first variation (storefront starting price)
+        await tx.product.update({
+          where: { id: productId },
+          data: {
+            regularPrice: firstVarRegular,
+            salePrice: firstVarSale,
+          },
+        });
+
+        dbRegularPrice = firstVarRegular;
+        dbSalePrice = firstVarSale;
+      }
+      // 3. Simple product without variations:
+      else {
+        await tx.product.update({
+          where: { id: productId },
+          data: {
+            regularPrice: dbRegularPrice,
+            salePrice: dbSalePrice,
+          },
+        });
       }
     });
 
-    // Revalidate public caches so the storefront updates immediately
+    // Revalidate public caches across the entire storefront layout
     try {
-      revalidatePath("/");
+      revalidatePath("/", "layout");
       revalidatePath("/products");
       revalidatePath("/categories");
-      revalidatePath("/categories/[slug]", "page");
-      revalidatePath("/products/[slug]", "page");
       revalidatePath("/admin/products");
     } catch (revalidateErr) {
       console.warn("Revalidation warning:", revalidateErr);
@@ -117,7 +189,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      message: "Product prices updated successfully",
+      message: "Product prices updated successfully and synchronized with customer storefront",
       updatedPrices: {
         regularPrice: dbRegularPrice,
         salePrice: dbSalePrice,

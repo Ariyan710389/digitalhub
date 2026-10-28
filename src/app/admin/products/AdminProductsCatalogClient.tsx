@@ -88,21 +88,23 @@ export function AdminProductsCatalogClient({
   const handleOpenPriceModal = (product: ProductData) => {
     setSelectedProduct(product);
 
-    // Calculate base values in Taka
-    // If salePrice exists and is > 0, sellPrice is salePrice, and regularPrice is regularPrice (strikethrough)
-    // If no salePrice, sellPrice is regularPrice, and regularPrice can be empty or same
-    const currentBaseSell =
-      product.salePrice && product.salePrice > 0
-        ? Math.round(product.salePrice / 100)
-        : Math.round(product.regularPrice / 100);
+    // If product has variations, prioritize the first variation for base values so it matches customer view
+    const firstVar = product.variations && product.variations.length > 0 ? product.variations[0] : null;
+    const sourceRegPrice = firstVar ? firstVar.regularPrice : product.regularPrice;
+    const sourceSalePrice = firstVar ? firstVar.salePrice : product.salePrice;
 
-    const currentBaseRegular =
-      product.salePrice && product.salePrice > 0 && product.regularPrice > product.salePrice
-        ? Math.round(product.regularPrice / 100)
+    const currentSell =
+      sourceSalePrice && sourceSalePrice > 0
+        ? Math.round(sourceSalePrice / 100)
+        : Math.round(sourceRegPrice / 100);
+
+    const currentRegular =
+      sourceSalePrice && sourceSalePrice > 0 && sourceRegPrice > sourceSalePrice
+        ? Math.round(sourceRegPrice / 100)
         : "";
 
-    setBaseSellPrice(currentBaseSell);
-    setBaseRegularPrice(currentBaseRegular);
+    setBaseSellPrice(currentSell);
+    setBaseRegularPrice(currentRegular);
 
     // Variations in Taka
     const vStates: VariationPriceEditState[] = (product.variations || []).map((v) => {
@@ -143,23 +145,38 @@ export function AdminProductsCatalogClient({
     setVariationEdits((prev) =>
       prev.map((item) => (item.id === id ? { ...item, [field]: num } : item))
     );
+
+    // If changing the first variation, sync base state as well
+    if (variationEdits.length > 0 && variationEdits[0].id === id) {
+      if (field === "sellPrice") setBaseSellPrice(num);
+      if (field === "regularPrice") setBaseRegularPrice(num);
+    }
   };
 
   const handleSavePrices = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedProduct) return;
 
-    if (baseSellPrice === "" || Number(baseSellPrice) < 0) {
-      toast.error("Please enter a valid Sell Price (বিক্রয় মূল্য).");
-      return;
-    }
+    const isSingleTier = !selectedProduct.variations || selectedProduct.variations.length <= 1;
 
-    // Check variations
-    for (const v of variationEdits) {
-      if (v.sellPrice === "" || Number(v.sellPrice) < 0) {
-        toast.error(`Please enter a valid Sell Price for variation: ${v.label}`);
+    let targetSell = baseSellPrice;
+    let targetRegular = baseRegularPrice;
+
+    if (isSingleTier) {
+      if (targetSell === "" || Number(targetSell) < 0) {
+        toast.error("Please enter a valid Sell Price (বিক্রয় মূল্য).");
         return;
       }
+    } else {
+      // Multi-variation: ensure each variation has a valid price
+      for (const v of variationEdits) {
+        if (v.sellPrice === "" || Number(v.sellPrice) < 0) {
+          toast.error(`Please enter a valid Sell Price for: ${v.label}`);
+          return;
+        }
+      }
+      targetSell = variationEdits[0]?.sellPrice ?? baseSellPrice;
+      targetRegular = variationEdits[0]?.regularPrice ?? baseRegularPrice;
     }
 
     setIsSaving(true);
@@ -167,13 +184,19 @@ export function AdminProductsCatalogClient({
     try {
       const payload = {
         productId: selectedProduct.id,
-        sellPrice: Number(baseSellPrice),
-        regularPrice: baseRegularPrice === "" ? null : Number(baseRegularPrice),
-        variations: variationEdits.map((v) => ({
-          id: v.id,
-          sellPrice: Number(v.sellPrice),
-          regularPrice: v.regularPrice === "" ? null : Number(v.regularPrice),
-        })),
+        sellPrice: Number(targetSell),
+        regularPrice: targetRegular === "" ? null : Number(targetRegular),
+        variations: isSingleTier
+          ? selectedProduct.variations.map((v) => ({
+              id: v.id,
+              sellPrice: Number(targetSell),
+              regularPrice: targetRegular === "" ? null : Number(targetRegular),
+            }))
+          : variationEdits.map((v) => ({
+              id: v.id,
+              sellPrice: Number(v.sellPrice),
+              regularPrice: v.regularPrice === "" ? null : Number(v.regularPrice),
+            })),
       };
 
       const res = await fetch("/api/admin/products/pricing", {
@@ -188,14 +211,14 @@ export function AdminProductsCatalogClient({
         throw new Error(data.error || "Failed to update prices");
       }
 
-      // Optimistically update local state
-      const updatedSellPaisa = Math.round(Number(baseSellPrice) * 100);
+      // Optimistically update local state so table and UI reflect new prices immediately
+      const updatedSellPaisa = Math.round(Number(targetSell) * 100);
       const updatedRegularPaisa =
-        baseRegularPrice && Number(baseRegularPrice) > Number(baseSellPrice)
-          ? Math.round(Number(baseRegularPrice) * 100)
+        targetRegular && Number(targetRegular) > Number(targetSell)
+          ? Math.round(Number(targetRegular) * 100)
           : updatedSellPaisa;
       const updatedSalePaisa =
-        baseRegularPrice && Number(baseRegularPrice) > Number(baseSellPrice)
+        targetRegular && Number(targetRegular) > Number(targetSell)
           ? updatedSellPaisa
           : null;
 
@@ -203,26 +226,36 @@ export function AdminProductsCatalogClient({
         prev.map((item) => {
           if (item.product.id !== selectedProduct.id) return item;
 
-          const updatedVariations = item.product.variations.map((v) => {
-            const edit = variationEdits.find((e) => e.id === v.id);
-            if (!edit) return v;
+          let updatedVariations: VariationData[] = [];
 
-            const vSellPaisa = Math.round(Number(edit.sellPrice) * 100);
-            const vRegPaisa =
-              edit.regularPrice && Number(edit.regularPrice) > Number(edit.sellPrice)
-                ? Math.round(Number(edit.regularPrice) * 100)
-                : vSellPaisa;
-            const vSalePaisa =
-              edit.regularPrice && Number(edit.regularPrice) > Number(edit.sellPrice)
-                ? vSellPaisa
-                : null;
-
-            return {
+          if (isSingleTier) {
+            updatedVariations = item.product.variations.map((v) => ({
               ...v,
-              regularPrice: vRegPaisa,
-              salePrice: vSalePaisa,
-            };
-          });
+              regularPrice: updatedRegularPaisa,
+              salePrice: updatedSalePaisa,
+            }));
+          } else {
+            updatedVariations = item.product.variations.map((v) => {
+              const edit = variationEdits.find((e) => e.id === v.id);
+              if (!edit) return v;
+
+              const vSellPaisa = Math.round(Number(edit.sellPrice) * 100);
+              const vRegPaisa =
+                edit.regularPrice && Number(edit.regularPrice) > Number(edit.sellPrice)
+                  ? Math.round(Number(edit.regularPrice) * 100)
+                  : vSellPaisa;
+              const vSalePaisa =
+                edit.regularPrice && Number(edit.regularPrice) > Number(edit.sellPrice)
+                  ? vSellPaisa
+                  : null;
+
+              return {
+                ...v,
+                regularPrice: vRegPaisa,
+                salePrice: vSalePaisa,
+              };
+            });
+          }
 
           return {
             ...item,
@@ -236,7 +269,7 @@ export function AdminProductsCatalogClient({
         })
       );
 
-      toast.success(`Prices updated successfully for ${selectedProduct.name}!`);
+      toast.success(`Prices updated and synced with customer storefront for ${selectedProduct.name}!`);
       setIsModalOpen(false);
     } catch (err: any) {
       toast.error(err.message || "Failed to save prices");
@@ -254,6 +287,8 @@ export function AdminProductsCatalogClient({
       (item.product.category?.name || "").toLowerCase().includes(q)
     );
   });
+
+  const isSingleTierProduct = !selectedProduct?.variations || selectedProduct.variations.length <= 1;
 
   return (
     <div className="space-y-6 max-w-7xl">
@@ -330,11 +365,11 @@ export function AdminProductsCatalogClient({
             <h2 className="text-sm font-bold text-[#F8FAFC] flex items-center gap-2">
               <span>Catalog & Price Control</span>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-cyan-500/10 text-[#00D9FF] border border-cyan-500/30">
-                Live Pricing
+                Customer View Synced
               </span>
             </h2>
             <p className="text-xs text-[#94A3B8] mt-0.5">
-              Click &quot;Edit Price&quot; on any product to update the Sell Price and Offer / Regular Price.
+              Click &quot;Edit Price&quot; on any product to update the Sell Price and Offer / Regular Price shown to customers.
             </p>
           </div>
 
@@ -358,7 +393,7 @@ export function AdminProductsCatalogClient({
                 <th className="py-3 px-3">Product Name</th>
                 <th className="py-3 px-3">Category</th>
                 <th className="py-3 px-3">Type</th>
-                <th className="py-3 px-3">Current Pricing (বিক্রয় ও অফার মূল্য)</th>
+                <th className="py-3 px-3">Customer View Price (বিক্রয় ও অফার মূল্য)</th>
                 <th className="py-3 px-3">Total Sold / Clients</th>
                 <th className="py-3 px-3">Variations</th>
                 <th className="py-3 px-3">Stock Status</th>
@@ -369,8 +404,14 @@ export function AdminProductsCatalogClient({
             <tbody className="divide-y divide-[#1B2A45]/40">
               {filteredProducts.map(({ product: p, timesTaken, uniqueClients }) => {
                 const stock = getStockStatusLabel(p.stockStatus);
-                const hasDiscount = p.salePrice && p.salePrice > 0 && p.regularPrice > p.salePrice;
-                const effectiveSellPrice = hasDiscount ? p.salePrice! : p.regularPrice;
+
+                // Prioritize first variation price so table matches customer view 1:1
+                const firstVar = p.variations && p.variations.length > 0 ? p.variations[0] : null;
+                const activeReg = firstVar ? firstVar.regularPrice : p.regularPrice;
+                const activeSale = firstVar ? firstVar.salePrice : p.salePrice;
+
+                const hasDiscount = activeSale && activeSale > 0 && activeReg > activeSale;
+                const effectiveSellPrice = hasDiscount ? activeSale! : activeReg;
 
                 return (
                   <tr key={p.id} className="hover:bg-[#101A30]/40 transition-colors">
@@ -391,7 +432,7 @@ export function AdminProductsCatalogClient({
                       {p.productType.replace(/_/g, " ")}
                     </td>
 
-                    {/* Pricing Column */}
+                    {/* Pricing Column - Exact Customer View Price */}
                     <td className="py-3.5 px-3">
                       <div className="flex flex-col gap-0.5">
                         <div className="flex items-center gap-1.5">
@@ -400,7 +441,7 @@ export function AdminProductsCatalogClient({
                           </span>
                           {hasDiscount && (
                             <span className="text-[11px] text-[#94A3B8] line-through font-medium">
-                              {formatPrice(p.regularPrice)}
+                              {formatPrice(activeReg)}
                             </span>
                           )}
                         </div>
@@ -524,114 +565,119 @@ export function AdminProductsCatalogClient({
                 • <strong>Sell Price (বিক্রয় মূল্য ৳):</strong> কাস্টমার যে দাম দিয়ে প্রোডাক্টটি কিনবে (বাধ্যতামূলক)।
               </p>
               <p className="leading-relaxed">
-                • <strong>Offer / Regular Price (পূর্বের মূল্য ৳):</strong> ডিসকাউন্ট/অফার দেখাতে চাইলে পূর্বের দাম লিখুন (যেমন: <s>৳1,800</s> কেটে ৳1,200 দেখাবে)। ডিসকাউন্ট না দেখাতে চাইলে এটি খালি রাখুন।
+                • <strong>Offer / Regular Price (পূর্বের মূল্য ৳):</strong> ডিসকাউন্ট/অফার দেখাতে চাইলে পূর্বের দাম লিখুন (যেমন: <s>৳5,000</s> কেটে ৳3,000 দেখাবে)। অফার না থাকলে এটি খালি রাখুন।
+              </p>
+              <p className="leading-relaxed text-emerald-400 font-medium">
+                ✓ এখানে সংরক্ষিত দাম সরাসরি কাস্টমার ভিউ (হোমপেজ, ক্যাটাগরি, প্রোডাক্ট পেজ ও কার্ট)-এ সাথে সাথে লাইভ হবে।
               </p>
             </div>
 
-            {/* Base Product Pricing */}
-            <div className="rounded-2xl bg-[#080D1B] border border-[#1B2A45] p-4 space-y-4">
-              <div className="flex items-center justify-between border-b border-[#1B2A45]/60 pb-2">
-                <h4 className="text-xs font-bold text-[#F8FAFC] uppercase tracking-wider flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-[#00D9FF]" />
-                  <span>Base Product Pricing</span>
-                </h4>
-                <span className="text-[10px] text-[#94A3B8]">
-                  Used as fallback or primary catalog price
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-[#F8FAFC] mb-1.5">
-                    Sell Price (বিক্রয় মূল্য ৳) <span className="text-rose-400">*</span>
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-[#00D9FF]">
-                      ৳
+            {/* Case 1: Single Tier Product (e.g. Online Course Bundle, Adobe Photoshop) */}
+            {isSingleTierProduct ? (
+              <div className="rounded-2xl bg-[#080D1B] border border-[#1B2A45] p-5 space-y-4">
+                <div className="flex items-center justify-between border-b border-[#1B2A45]/60 pb-2">
+                  <h4 className="text-xs font-bold text-[#F8FAFC] uppercase tracking-wider flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-[#00D9FF]" />
+                    <span>Product Pricing (স্টোরফ্রন্ট মূল্য)</span>
+                  </h4>
+                  {selectedProduct.variations.length === 1 && (
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-500/10 text-[#00D9FF] border border-cyan-500/30">
+                      Tier: {selectedProduct.variations[0].sku || "Default Tier"}
                     </span>
-                    <input
-                      type="number"
-                      required
-                      min="0"
-                      value={baseSellPrice}
-                      onChange={(e) =>
-                        setBaseSellPrice(e.target.value === "" ? "" : Number(e.target.value))
-                      }
-                      placeholder="e.g. 1200"
-                      className="w-full bg-[#101A30] border border-[#1B2A45] rounded-xl py-2 pl-8 pr-3 text-sm font-bold text-[#F8FAFC] focus:outline-none focus:border-[#00D9FF]"
-                    />
-                  </div>
-                  <span className="text-[10px] text-[#94A3B8] block mt-1">
-                    Customer actually pays this price
-                  </span>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-[#F8FAFC] mb-1.5">
-                    Offer / Regular Price (পূর্বের কাটাকুটি মূল্য ৳)
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-[#94A3B8]">
-                      ৳
-                    </span>
-                    <input
-                      type="number"
-                      min="0"
-                      value={baseRegularPrice}
-                      onChange={(e) =>
-                        setBaseRegularPrice(e.target.value === "" ? "" : Number(e.target.value))
-                      }
-                      placeholder="e.g. 1800 (Optional)"
-                      className="w-full bg-[#101A30] border border-[#1B2A45] rounded-xl py-2 pl-8 pr-3 text-sm font-bold text-[#F8FAFC] focus:outline-none focus:border-[#00D9FF]"
-                    />
-                  </div>
-                  <span className="text-[10px] text-[#94A3B8] block mt-1">
-                    Shown as crossed-out discount (<s>৳1,800</s>)
-                  </span>
-                </div>
-              </div>
-
-              {/* Dynamic Live Preview */}
-              <div className="p-3 rounded-xl bg-[#101A30] border border-[#1B2A45] flex items-center justify-between text-xs">
-                <span className="text-[#94A3B8] font-medium">Storefront Preview:</span>
-                <div className="flex items-center gap-2">
-                  <span className="font-extrabold text-[#00D9FF] text-base">
-                    ৳{baseSellPrice || 0}
-                  </span>
-                  {baseRegularPrice && Number(baseRegularPrice) > Number(baseSellPrice || 0) && (
-                    <>
-                      <span className="text-xs text-[#94A3B8] line-through font-medium">
-                        ৳{baseRegularPrice}
-                      </span>
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20">
-                        {Math.round(
-                          ((Number(baseRegularPrice) - Number(baseSellPrice)) /
-                            Number(baseRegularPrice)) *
-                            100
-                        )}
-                        % OFF
-                      </span>
-                    </>
                   )}
                 </div>
-              </div>
-            </div>
 
-            {/* Variations Pricing Section */}
-            {variationEdits.length > 0 && (
-              <div className="rounded-2xl bg-[#080D1B] border border-[#1B2A45] p-4 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-[#F8FAFC] mb-1.5">
+                      Sell Price (বিক্রয় মূল্য ৳) <span className="text-rose-400">*</span>
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-[#00D9FF]">
+                        ৳
+                      </span>
+                      <input
+                        type="number"
+                        required
+                        min="0"
+                        value={baseSellPrice}
+                        onChange={(e) =>
+                          setBaseSellPrice(e.target.value === "" ? "" : Number(e.target.value))
+                        }
+                        placeholder="e.g. 3000"
+                        className="w-full bg-[#101A30] border border-[#1B2A45] rounded-xl py-2 pl-8 pr-3 text-sm font-bold text-[#F8FAFC] focus:outline-none focus:border-[#00D9FF]"
+                      />
+                    </div>
+                    <span className="text-[10px] text-[#94A3B8] block mt-1">
+                      Customer pays this price
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-[#F8FAFC] mb-1.5">
+                      Offer / Regular Price (পূর্বের কাটাকুটি মূল্য ৳)
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-[#94A3B8]">
+                        ৳
+                      </span>
+                      <input
+                        type="number"
+                        min="0"
+                        value={baseRegularPrice}
+                        onChange={(e) =>
+                          setBaseRegularPrice(e.target.value === "" ? "" : Number(e.target.value))
+                        }
+                        placeholder="e.g. 5000 (Optional)"
+                        className="w-full bg-[#101A30] border border-[#1B2A45] rounded-xl py-2 pl-8 pr-3 text-sm font-bold text-[#F8FAFC] focus:outline-none focus:border-[#00D9FF]"
+                      />
+                    </div>
+                    <span className="text-[10px] text-[#94A3B8] block mt-1">
+                      Shown as crossed-out discount (<s>৳5,000</s>)
+                    </span>
+                  </div>
+                </div>
+
+                {/* Dynamic Live Preview */}
+                <div className="p-3.5 rounded-xl bg-[#101A30] border border-[#1B2A45] flex items-center justify-between text-xs">
+                  <span className="text-[#94A3B8] font-medium">Customer View Preview:</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-extrabold text-[#00D9FF] text-base">
+                      ৳{baseSellPrice || 0}
+                    </span>
+                    {baseRegularPrice && Number(baseRegularPrice) > Number(baseSellPrice || 0) && (
+                      <>
+                        <span className="text-xs text-[#94A3B8] line-through font-medium">
+                          ৳{baseRegularPrice}
+                        </span>
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                          {Math.round(
+                            ((Number(baseRegularPrice) - Number(baseSellPrice)) /
+                              Number(baseRegularPrice)) *
+                              100
+                          )}
+                          % OFF
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* Case 2: Multi-Tier Product (e.g. ChatGPT Plus with 1M, 3M, 1Y; Web Development with E-commerce, Landing) */
+              <div className="rounded-2xl bg-[#080D1B] border border-[#1B2A45] p-5 space-y-4">
                 <div className="flex items-center justify-between border-b border-[#1B2A45]/60 pb-2">
                   <h4 className="text-xs font-bold text-[#F8FAFC] uppercase tracking-wider flex items-center gap-1.5">
                     <Layers className="w-3.5 h-3.5 text-purple-400" />
-                    <span>Package & Duration Variations ({variationEdits.length})</span>
+                    <span>Package / Tier Pricing ({variationEdits.length} Options)</span>
                   </h4>
                   <span className="text-[10px] text-purple-400 font-medium">
                     Storefront dropdown options
                   </span>
                 </div>
 
-                <div className="space-y-3">
-                  {variationEdits.map((v) => {
+                <div className="space-y-3.5">
+                  {variationEdits.map((v, idx) => {
                     const hasVDiscount =
                       v.regularPrice !== "" &&
                       v.sellPrice !== "" &&
@@ -640,13 +686,18 @@ export function AdminProductsCatalogClient({
                     return (
                       <div
                         key={v.id}
-                        className="p-3.5 rounded-xl bg-[#101A30] border border-[#1B2A45] space-y-3"
+                        className="p-4 rounded-xl bg-[#101A30] border border-[#1B2A45] space-y-3"
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-cyan-500/10 text-[#00D9FF] border border-cyan-500/30">
                               {v.label}
                             </span>
+                            {idx === 0 && (
+                              <span className="px-2 py-0.2 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                                Default Storefront Display
+                              </span>
+                            )}
                             {v.sku && (
                               <span className="text-[10px] font-mono text-[#94A3B8]">
                                 SKU: {v.sku}
@@ -669,8 +720,8 @@ export function AdminProductsCatalogClient({
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div>
-                            <label className="block text-[11px] font-semibold text-[#94A3B8] mb-1">
-                              Sell Price (৳)
+                            <label className="block text-[11px] font-semibold text-[#F8FAFC] mb-1">
+                              Sell Price (বিক্রয় মূল্য ৳) <span className="text-rose-400">*</span>
                             </label>
                             <div className="relative">
                               <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-[#00D9FF]">
@@ -691,8 +742,8 @@ export function AdminProductsCatalogClient({
                           </div>
 
                           <div>
-                            <label className="block text-[11px] font-semibold text-[#94A3B8] mb-1">
-                              Offer / Regular Price (৳)
+                            <label className="block text-[11px] font-semibold text-[#F8FAFC] mb-1">
+                              Offer / Regular Price (পূর্বের কাটাকুটি মূল্য ৳)
                             </label>
                             <div className="relative">
                               <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-[#94A3B8]">
@@ -737,7 +788,7 @@ export function AdminProductsCatalogClient({
                 {isSaving ? (
                   <>
                     <div className="w-3.5 h-3.5 border-2 border-[#050812] border-t-transparent rounded-full animate-spin" />
-                    <span>Saving Prices...</span>
+                    <span>Saving & Syncing...</span>
                   </>
                 ) : (
                   <>
