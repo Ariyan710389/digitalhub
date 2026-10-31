@@ -5,6 +5,7 @@ import { CategorySection } from "@/components/storefront/CategorySection";
 import { ProductGrid } from "@/components/storefront/ProductGrid";
 import { PromoBanner } from "@/components/storefront/PromoBanner";
 import { WhyChooseUs } from "@/components/storefront/WhyChooseUs";
+import { CustomerReviewsSection } from "@/components/storefront/CustomerReviewsSection";
 import { FAQ } from "@/components/storefront/FAQ";
 import { Newsletter } from "@/components/storefront/Newsletter";
 import { ProductData, CategoryData, HeroSlideData } from "@/types";
@@ -127,8 +128,13 @@ export default async function HomePage() {
       {/* 2. Category Section */}
       <CategorySection categories={categories} />
 
-      {/* 3. Latest Products Section */}
-      <ProductGrid products={products} title="Latest Products" showFilters={true} />
+      {/* 3. Catalog Products with Left Category Sidebar & Filters */}
+      <ProductGrid
+        products={products}
+        categories={categories}
+        title="Complete Catalog & Services"
+        showFilters={true}
+      />
 
       {/* 4. Special Offer Banner */}
       <PromoBanner />
@@ -136,10 +142,13 @@ export default async function HomePage() {
       {/* 5. Why Choose Us */}
       <WhyChooseUs />
 
-      {/* 6. FAQ Section */}
+      {/* 6. Verified Customer Reviews */}
+      <CustomerReviewsSection />
+
+      {/* 7. FAQ Section */}
       <FAQ />
 
-      {/* 7. Newsletter Signup */}
+      {/* 8. Newsletter Signup */}
       <Newsletter />
     </div>
   );

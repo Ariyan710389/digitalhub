@@ -6,15 +6,15 @@ export const APP_CONFIG = {
   currencySymbol: "৳",
   contact: {
     email: "info@digitalhub.com",
-    phone: "+880 1712 345678",
-    address: "123 Digital Street, Mirpur, Dhaka-1216, Bangladesh",
+    phone: "+880 1873-168818",
+    address: "Chandanaish 4370, Chittagong, Bangladesh",
     supportHours: "Support: 24/7 Available",
   },
   social: {
-    facebook: "https://facebook.com",
-    instagram: "https://instagram.com",
+    facebook: "https://www.facebook.com/khaledwali7ra",
+    instagram: "https://www.instagram.com/adonlineghor/",
     youtube: "https://youtube.com",
-    whatsapp: "https://wa.me/8801712345678",
+    whatsapp: "https://wa.link/xyj473",
     telegram: "https://t.me/digitalhub",
   },
 };

@@ -120,6 +120,71 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
     notFound();
   }
 
+  // Fetch Related Products in same category
+  const rawRelated = rawProduct.categoryId
+    ? await prisma.product.findMany({
+        where: {
+          categoryId: rawProduct.categoryId,
+          id: { not: rawProduct.id },
+          isPublished: true,
+          isDeleted: false,
+        },
+        take: 4,
+        include: {
+          category: { select: { id: true, name: true, slug: true } },
+          variations: {
+            where: { isActive: true },
+            include: {
+              variationOptions: {
+                include: { attribute: true, option: true },
+              },
+            },
+          },
+        },
+      })
+    : [];
+
+  const relatedProducts: ProductData[] = rawRelated.map((p) => ({
+    id: p.id,
+    name: p.name,
+    slug: p.slug,
+    shortDesc: p.shortDesc,
+    fullDesc: p.fullDesc,
+    categoryId: p.categoryId,
+    productType: p.productType,
+    featuredImage: p.featuredImage,
+    isFeatured: p.isFeatured,
+    isPublished: p.isPublished,
+    badge: p.badge,
+    regularPrice: p.regularPrice,
+    salePrice: p.salePrice,
+    stockStatus: p.stockStatus,
+    trackStock: p.trackStock,
+    totalSold: p.totalSold || 0,
+    category: p.category,
+    variations: p.variations.map((v) => ({
+      id: v.id,
+      productId: v.productId,
+      sku: v.sku,
+      regularPrice: v.regularPrice,
+      salePrice: v.salePrice,
+      image: v.image,
+      stockStatus: v.stockStatus,
+      isActive: v.isActive,
+      variationOptions: (v.variationOptions || []).map((vo) => ({
+        attribute: {
+          id: vo.attribute?.id || "",
+          name: vo.attribute?.name || "",
+          slug: vo.attribute?.slug || "",
+        },
+        option: {
+          id: vo.option?.id || "",
+          value: vo.option?.value || "",
+        },
+      })),
+    })),
+  }));
+
   const product: ProductData = {
     id: rawProduct.id,
     name: rawProduct.name,
@@ -270,8 +335,8 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
           <span className="text-[#F8FAFC] font-medium truncate">{product.name}</span>
         </nav>
 
-        {/* Client Product Interaction (Variations, Cart, Price Calc) */}
-        <ProductDetailsClient product={product} />
+        {/* Client Product Interaction (Variations, Cart, Price Calc, Wishlist, Related) */}
+        <ProductDetailsClient product={product} relatedProducts={relatedProducts} />
       </div>
     </div>
   );

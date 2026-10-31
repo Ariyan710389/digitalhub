@@ -11,6 +11,13 @@ export default async function AdminOrdersPage() {
       paymentSubmissions: {
         orderBy: { submittedAt: "desc" },
       },
+      orderNotes: {
+        orderBy: { createdAt: "desc" },
+      },
+      activityLog: {
+        orderBy: { createdAt: "desc" },
+        take: 5,
+      },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -24,6 +31,10 @@ export default async function AdminOrdersPage() {
     paymentMethod: o.paymentMethod || "N/A",
     status: o.status,
     total: o.total,
+    isFlagged: o.isFlagged,
+    flagReason: o.flagReason,
+    notesCount: o.orderNotes.length,
+    recentNotes: o.orderNotes.map((n) => n.note),
     itemsCount: o.items.length,
     itemsSummary: o.items.map((i) => `${i.productName} (${i.variationDesc || "Standard"}) ×${i.quantity}`).join(", "),
     transactionId: o.paymentSubmissions[0]?.transactionId || null,

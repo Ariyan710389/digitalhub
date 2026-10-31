@@ -13,10 +13,12 @@ import {
   Sparkles,
   ChevronDown,
   Check,
+  Heart,
 } from "lucide-react";
 import { ProductData, ProductVariationData } from "@/types";
 import { formatPrice } from "@/lib/utils";
 import { useCartStore } from "@/store/cart";
+import { useWishlistStore } from "@/store/wishlist";
 import { toast } from "@/components/ui/Toast";
 
 interface ProductCardProps {
@@ -25,6 +27,34 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   const { addItem } = useCartStore();
+  const { toggleItem, isInWishlist } = useWishlistStore();
+  const [inWishlist, setInWishlist] = useState(false);
+
+  React.useEffect(() => {
+    setInWishlist(isInWishlist(product.id));
+  }, [isInWishlist, product.id]);
+
+  const handleWishlistToggle = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const added = toggleItem({
+      productId: product.id,
+      name: product.name,
+      slug: product.slug,
+      featuredImage: product.featuredImage,
+      regularPrice: product.regularPrice,
+      salePrice: product.salePrice,
+      badge: product.badge,
+      categoryName: product.category?.name,
+      categorySlug: product.category?.slug,
+    });
+    setInWishlist(added);
+    if (added) {
+      toast.success(`Saved ${product.name} to Wishlist!`);
+    } else {
+      toast.info(`Removed ${product.name} from Wishlist`);
+    }
+  };
 
   const variations = product.variations || [];
   const hasVariations = variations.length > 0;
@@ -150,19 +180,33 @@ export function ProductCard({ product }: ProductCardProps) {
 
   return (
     <div className="group relative flex flex-col justify-between rounded-2xl bg-[#0B1224] border border-[#1B2A45] hover:border-[#00D9FF]/40 p-4 sm:p-5 transition-all duration-300 hover:shadow-[0_0_25px_rgba(0,217,255,0.12)] hover:-translate-y-1">
-      {/* Top row: Icon & Badge */}
+      {/* Top row: Icon & Badge & Wishlist */}
       <div className="flex items-start justify-between gap-2 mb-4">
         {renderProductIcon()}
 
-        {product.badge && (
-          <span
-            className={`px-2.5 py-0.5 text-[10px] font-bold rounded-full border tracking-wide uppercase ${getBadgeStyle(
-              product.badge
-            )}`}
+        <div className="flex items-center gap-1.5">
+          {product.badge && (
+            <span
+              className={`px-2.5 py-0.5 text-[10px] font-bold rounded-full border tracking-wide uppercase ${getBadgeStyle(
+                product.badge
+              )}`}
+            >
+              {product.badge}
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={handleWishlistToggle}
+            className={`p-1.5 rounded-lg border transition-all ${
+              inWishlist
+                ? "bg-rose-500/10 border-rose-500/40 text-rose-500"
+                : "bg-[#080D1B] border-[#1B2A45] text-[#94A3B8] hover:text-rose-400 hover:border-rose-500/30"
+            }`}
+            title={inWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
           >
-            {product.badge}
-          </span>
-        )}
+            <Heart className={`w-3.5 h-3.5 ${inWishlist ? "fill-rose-500" : ""}`} />
+          </button>
+        </div>
       </div>
 
       {/* Product Titles */}

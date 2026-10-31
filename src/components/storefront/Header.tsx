@@ -17,8 +17,10 @@ import {
   ShieldAlert,
   GraduationCap,
   Package,
+  Heart,
 } from "lucide-react";
 import { useCartStore } from "@/store/cart";
+import { useWishlistStore } from "@/store/wishlist";
 import { formatPrice } from "@/lib/utils";
 import { NAVIGATION_LINKS, APP_CONFIG } from "@/lib/constants";
 
@@ -41,6 +43,14 @@ export function Header({ siteSettings }: HeaderProps = {}) {
 
   const itemCount = getItemCount();
   const cartTotal = getTotal();
+  const { getItemCount: getWishlistCount } = useWishlistStore();
+  const [mounted, setMounted] = useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const wishlistCount = mounted ? getWishlistCount() : 0;
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -184,6 +194,25 @@ export function Header({ siteSettings }: HeaderProps = {}) {
                 </Link>
               </div>
             )}
+
+            {/* Wishlist Button Pill */}
+            <Link
+              href="/wishlist"
+              className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl bg-[#0B1224] border border-[#1B2A45] hover:border-rose-500/40 text-[#94A3B8] hover:text-rose-400 transition-all relative group"
+              title="View Wishlist"
+            >
+              <div className="relative">
+                <Heart className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                {wishlistCount > 0 && (
+                  <span className="absolute -top-2 -right-2 flex items-center justify-center min-w-[15px] h-3.5 px-1 text-[9px] font-bold rounded-full bg-rose-500 text-white">
+                    {wishlistCount}
+                  </span>
+                )}
+              </div>
+              <span className="hidden lg:inline text-xs font-semibold text-[#F8FAFC]">
+                Wishlist
+              </span>
+            </Link>
 
             {/* Cart Button Pill (Matching Mockup) */}
             <button

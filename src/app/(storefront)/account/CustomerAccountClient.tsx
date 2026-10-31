@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { signOut } from "next-auth/react";
 import {
   User,
@@ -9,7 +10,6 @@ import {
   Clock,
   ShieldCheck,
   ChevronRight,
-  ExternalLink,
   Copy,
   Check,
   Zap,
@@ -23,9 +23,19 @@ import {
   GraduationCap,
   Bot,
   Laptop,
+  Heart,
+  Trash2,
+  Phone,
+  Mail,
+  Edit3,
+  Layers,
+  Save,
+  Loader2,
 } from "lucide-react";
 import { formatPrice, getOrderStatusLabel } from "@/lib/utils";
 import { toast } from "@/components/ui/Toast";
+import { useWishlistStore } from "@/store/wishlist";
+import { useCartStore } from "@/store/cart";
 
 export interface AccountItemData {
   id: string;
@@ -85,19 +95,35 @@ export function CustomerAccountClient({
   orders,
   whatsappNumber = "8801873168818",
 }: CustomerAccountClientProps) {
-  const [activeTab, setActiveTab] = useState<"services" | "orders" | "profile">("services");
+  const [activeTab, setActiveTab] = useState<"services" | "orders" | "wishlist" | "profile" | "support">("services");
+  const [itemTypeFilter, setItemTypeFilter] = useState<"all" | "courses" | "services">("all");
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const activeServicesCount = purchasedItems.filter(
-    (i) => i.orderStatus === "COMPLETED" || i.orderStatus === "PROCESSING" || i.orderStatus === "PAID"
-  ).length;
+  // Profile Edit State
+  const [name, setName] = useState(user.name || "");
+  const [phone, setPhone] = useState(user.phone || "");
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [profileSuccessMsg, setProfileSuccessMsg] = useState("");
+
+  const { items: wishlistItems, removeItem: removeWishlistItem, clearWishlist } = useWishlistStore();
+  const { addItem: addToCart } = useCartStore();
+
+  const isCourseItem = (slug?: string | null, name?: string) => {
+    const s = (slug || name || "").toLowerCase();
+    return s.includes("course") || s.includes("bundle") || s.includes("masterclass") || s.includes("tutorial");
+  };
+
+  const coursesCount = purchasedItems.filter((i) => isCourseItem(i.productSlug, i.productName)).length;
+  const servicesCount = purchasedItems.filter((i) => !isCourseItem(i.productSlug, i.productName)).length;
+
+  const filteredPurchasedItems = purchasedItems.filter((item) => {
+    if (itemTypeFilter === "courses") return isCourseItem(item.productSlug, item.productName);
+    if (itemTypeFilter === "services") return !isCourseItem(item.productSlug, item.productName);
+    return true;
+  });
 
   const completedServicesCount = purchasedItems.filter(
     (i) => i.orderStatus === "COMPLETED" || i.deliveryStatus === "DELIVERED"
-  ).length;
-
-  const pendingCount = orders.filter(
-    (o) => o.status === "PENDING" || o.status === "AWAITING_PAYMENT" || o.status === "PAYMENT_UNDER_REVIEW"
   ).length;
 
   const handleCopy = (text: string, id: string) => {
@@ -105,6 +131,33 @@ export function CustomerAccountClient({
     setCopiedId(id);
     toast.info("Copied to clipboard!");
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const handleProfileSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingProfile(true);
+    setProfileSuccessMsg("");
+
+    try {
+      const res = await fetch("/api/account/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: name.trim(), phone: phone.trim() }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to update profile");
+      }
+
+      toast.success("Profile updated successfully!");
+      setProfileSuccessMsg("Profile information saved successfully.");
+      setTimeout(() => setProfileSuccessMsg(""), 4000);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update profile");
+    } finally {
+      setIsSavingProfile(false);
+    }
   };
 
   const getCleanWaLink = (orderNumber?: string) => {
@@ -120,13 +173,13 @@ export function CustomerAccountClient({
     if (s.includes("chatgpt") || s.includes("ai") || s.includes("bot")) {
       return <Bot className="h-6 w-6 text-emerald-400" />;
     }
-    if (s.includes("course") || s.includes("masterclass") || s.includes("tutorial")) {
+    if (isCourseItem(slug, name)) {
       return <GraduationCap className="h-6 w-6 text-amber-400" />;
     }
     if (s.includes("web") || s.includes("dev") || s.includes("design")) {
       return <Laptop className="h-6 w-6 text-purple-400" />;
     }
-    return <Sparkles className="h-6 w-6 text-[#00D9FF]" />;
+    return <Zap className="h-6 w-6 text-[#00D9FF]" />;
   };
 
   return (
@@ -141,52 +194,61 @@ export function CustomerAccountClient({
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#00D9FF] via-[#2563FF] to-[#8B3DFF] p-[2px] shadow-[0_0_20px_rgba(0,217,255,0.3)] shrink-0">
                 <div className="w-full h-full bg-[#070B16] rounded-[14px] flex items-center justify-center text-[#00D9FF] font-black text-2xl">
-                  {user.name ? user.name.charAt(0).toUpperCase() : "U"}
+                  {name ? name.charAt(0).toUpperCase() : "U"}
                 </div>
               </div>
 
               <div>
                 <div className="flex items-center gap-2.5">
                   <h1 className="text-xl sm:text-2xl font-black text-[#F8FAFC]">
-                    {user.name || "Valued Customer"}
+                    {name || "Valued Customer"}
                   </h1>
                   <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#00D9FF]/10 text-[#00D9FF] border border-[#00D9FF]/30">
                     Customer Account
                   </span>
                 </div>
                 <p className="text-xs text-[#94A3B8] mt-1">{user.email}</p>
-                {user.phone && (
-                  <p className="text-xs font-mono text-[#00D9FF]/80 mt-0.5">{user.phone}</p>
+                {phone && (
+                  <p className="text-xs font-mono text-[#00D9FF]/80 mt-0.5">{phone}</p>
                 )}
               </div>
             </div>
 
             {/* Quick Stats Grid */}
-            <div className="grid grid-cols-3 gap-3 sm:gap-4 shrink-0">
-              <div className="p-3.5 rounded-2xl bg-[#080D1B] border border-[#1B2A45] text-center min-w-[90px] sm:min-w-[110px]">
-                <span className="text-xl sm:text-2xl font-black text-[#00D9FF] block">
-                  {purchasedItems.length}
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5 sm:gap-3 shrink-0">
+              <div className="p-3 rounded-2xl bg-[#080D1B] border border-[#1B2A45] text-center min-w-[75px] sm:min-w-[95px]">
+                <span className="text-lg sm:text-2xl font-black text-[#00D9FF] block">
+                  {servicesCount}
                 </span>
-                <span className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider block mt-0.5">
+                <span className="text-[9px] sm:text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider block mt-0.5">
                   Services
                 </span>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-[#080D1B] border border-[#1B2A45] text-center min-w-[90px] sm:min-w-[110px]">
-                <span className="text-xl sm:text-2xl font-black text-emerald-400 block">
-                  {completedServicesCount}
+              <div className="p-3 rounded-2xl bg-[#080D1B] border border-[#1B2A45] text-center min-w-[75px] sm:min-w-[95px]">
+                <span className="text-lg sm:text-2xl font-black text-amber-400 block">
+                  {coursesCount}
                 </span>
-                <span className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider block mt-0.5">
-                  Active
+                <span className="text-[9px] sm:text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider block mt-0.5">
+                  Courses
                 </span>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-[#080D1B] border border-[#1B2A45] text-center min-w-[90px] sm:min-w-[110px]">
-                <span className="text-xl sm:text-2xl font-black text-purple-400 block">
+              <div className="p-3 rounded-2xl bg-[#080D1B] border border-[#1B2A45] text-center min-w-[75px] sm:min-w-[95px]">
+                <span className="text-lg sm:text-2xl font-black text-purple-400 block">
                   {orders.length}
                 </span>
-                <span className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider block mt-0.5">
+                <span className="text-[9px] sm:text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider block mt-0.5">
                   Orders
+                </span>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-[#080D1B] border border-[#1B2A45] text-center min-w-[75px] sm:min-w-[95px]">
+                <span className="text-lg sm:text-2xl font-black text-rose-400 block">
+                  {wishlistItems.length}
+                </span>
+                <span className="text-[9px] sm:text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider block mt-0.5">
+                  Saved
                 </span>
               </div>
             </div>
@@ -198,14 +260,14 @@ export function CustomerAccountClient({
           <button
             type="button"
             onClick={() => setActiveTab("services")}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+            className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
               activeTab === "services"
                 ? "bg-[#00D9FF] text-[#050812] shadow-[0_0_15px_rgba(0,217,255,0.35)]"
                 : "bg-[#0B1224] border border-[#1B2A45] text-[#94A3B8] hover:text-[#F8FAFC]"
             }`}
           >
-            <GraduationCap className="w-4 h-4" />
-            <span>My Purchased Services & Courses</span>
+            <Layers className="w-4 h-4" />
+            <span>Purchased Services & Courses</span>
             <span
               className={`px-2 py-0.2 rounded-full text-[10px] ${
                 activeTab === "services"
@@ -220,7 +282,7 @@ export function CustomerAccountClient({
           <button
             type="button"
             onClick={() => setActiveTab("orders")}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+            className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
               activeTab === "orders"
                 ? "bg-[#00D9FF] text-[#050812] shadow-[0_0_15px_rgba(0,217,255,0.35)]"
                 : "bg-[#0B1224] border border-[#1B2A45] text-[#94A3B8] hover:text-[#F8FAFC]"
@@ -241,40 +303,122 @@ export function CustomerAccountClient({
 
           <button
             type="button"
+            onClick={() => setActiveTab("wishlist")}
+            className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+              activeTab === "wishlist"
+                ? "bg-[#00D9FF] text-[#050812] shadow-[0_0_15px_rgba(0,217,255,0.35)]"
+                : "bg-[#0B1224] border border-[#1B2A45] text-[#94A3B8] hover:text-[#F8FAFC]"
+            }`}
+          >
+            <Heart className="w-4 h-4" />
+            <span>Wishlist</span>
+            <span
+              className={`px-2 py-0.2 rounded-full text-[10px] ${
+                activeTab === "wishlist"
+                  ? "bg-[#050812] text-[#00D9FF]"
+                  : "bg-[#101A30] text-[#94A3B8]"
+              }`}
+            >
+              {wishlistItems.length}
+            </span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setActiveTab("profile")}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+            className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
               activeTab === "profile"
                 ? "bg-[#00D9FF] text-[#050812] shadow-[0_0_15px_rgba(0,217,255,0.35)]"
                 : "bg-[#0B1224] border border-[#1B2A45] text-[#94A3B8] hover:text-[#F8FAFC]"
             }`}
           >
             <User className="w-4 h-4" />
-            <span>Profile Details</span>
+            <span>Profile Settings</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("support")}
+            className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+              activeTab === "support"
+                ? "bg-[#00D9FF] text-[#050812] shadow-[0_0_15px_rgba(0,217,255,0.35)]"
+                : "bg-[#0B1224] border border-[#1B2A45] text-[#94A3B8] hover:text-[#F8FAFC]"
+            }`}
+          >
+            <HelpCircle className="w-4 h-4" />
+            <span>Support & Help</span>
           </button>
         </div>
 
         {/* ==================== TAB 1: MY SERVICES & COURSES ==================== */}
         {activeTab === "services" && (
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h2 className="text-lg font-bold text-[#F8FAFC]">
                   Active Services, Subscriptions & Courses
                 </h2>
                 <p className="text-xs text-[#94A3B8]">
-                  Access your purchased software licenses, AI subscriptions, and course materials.
+                  Access your purchased digital services, credentials, and course study materials.
                 </p>
+              </div>
+
+              {/* Sub-filter Pills */}
+              <div className="flex items-center gap-1.5 bg-[#080D1B] p-1 rounded-xl border border-[#1B2A45]">
+                <button
+                  type="button"
+                  onClick={() => setItemTypeFilter("all")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                    itemTypeFilter === "all"
+                      ? "bg-[#00D9FF] text-[#050812] shadow-sm"
+                      : "text-[#94A3B8] hover:text-[#F8FAFC]"
+                  }`}
+                >
+                  All ({purchasedItems.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setItemTypeFilter("courses")}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                    itemTypeFilter === "courses"
+                      ? "bg-amber-400 text-[#050812] shadow-sm"
+                      : "text-[#94A3B8] hover:text-amber-400"
+                  }`}
+                >
+                  <GraduationCap className="w-3.5 h-3.5" />
+                  <span>Courses ({coursesCount})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setItemTypeFilter("services")}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                    itemTypeFilter === "services"
+                      ? "bg-[#2563FF] text-white shadow-sm"
+                      : "text-[#94A3B8] hover:text-[#00D9FF]"
+                  }`}
+                >
+                  <Zap className="w-3.5 h-3.5" />
+                  <span>Services ({servicesCount})</span>
+                </button>
               </div>
             </div>
 
-            {purchasedItems.length === 0 ? (
+            {filteredPurchasedItems.length === 0 ? (
               <div className="rounded-3xl bg-[#0B1224] border border-[#1B2A45] p-12 text-center space-y-4">
                 <div className="w-16 h-16 rounded-2xl bg-[#080D1B] border border-[#1B2A45] flex items-center justify-center text-[#94A3B8] mx-auto">
-                  <GraduationCap className="h-8 w-8 text-[#00D9FF]" />
+                  {itemTypeFilter === "courses" ? (
+                    <GraduationCap className="h-8 w-8 text-amber-400" />
+                  ) : (
+                    <Zap className="h-8 w-8 text-[#00D9FF]" />
+                  )}
                 </div>
                 <div className="space-y-1">
                   <h3 className="text-base font-bold text-[#F8FAFC]">
-                    No purchased services or courses yet
+                    {itemTypeFilter === "courses"
+                      ? "No purchased courses found"
+                      : itemTypeFilter === "services"
+                      ? "No active digital services found"
+                      : "No purchased services or courses yet"}
                   </h3>
                   <p className="text-xs text-[#94A3B8] max-w-sm mx-auto leading-relaxed">
                     Explore our collection of ChatGPT Plus, Midjourney, development services, and online courses.
@@ -290,13 +434,14 @@ export function CustomerAccountClient({
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {purchasedItems.map((item) => {
+                {filteredPurchasedItems.map((item) => {
                   const status = getOrderStatusLabel(item.orderStatus);
                   const isCompleted =
                     item.orderStatus === "COMPLETED" || item.deliveryStatus === "DELIVERED";
                   const isProcessing =
                     item.orderStatus === "PROCESSING" || item.orderStatus === "PAID";
                   const isReview = item.orderStatus === "PAYMENT_UNDER_REVIEW";
+                  const isCourse = isCourseItem(item.productSlug, item.productName);
 
                   return (
                     <div
@@ -311,6 +456,13 @@ export function CustomerAccountClient({
                               {renderServiceIcon(item.productSlug, item.productName)}
                             </div>
                             <div>
+                              <div className="flex items-center gap-1.5 mb-0.5">
+                                <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                                  isCourse ? "bg-amber-500/10 text-amber-400 border border-amber-500/30" : "bg-[#00D9FF]/10 text-[#00D9FF] border border-[#00D9FF]/30"
+                                }`}>
+                                  {isCourse ? "Online Course" : "Digital Service"}
+                                </span>
+                              </div>
                               <h3 className="text-sm font-extrabold text-[#F8FAFC] leading-snug">
                                 {item.productName}
                               </h3>
@@ -352,7 +504,7 @@ export function CustomerAccountClient({
                             <div className="flex items-center justify-between">
                               <span className="text-[10px] font-bold uppercase tracking-wider text-[#00D9FF] flex items-center gap-1.5">
                                 <Zap className="w-3.5 h-3.5 text-[#00D9FF]" />
-                                Access Details & Credentials
+                                {isCourse ? "Course Access & Drive Links" : "Access Details & Credentials"}
                               </span>
                               <button
                                 type="button"
@@ -380,7 +532,9 @@ export function CustomerAccountClient({
                           <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-300 flex items-center gap-2">
                             <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
                             <span>
-                              Service is fully active! Check your confirmation receipt or WhatsApp for direct access.
+                              {isCourse
+                                ? "Course is active! Access details have been unlocked."
+                                : "Service is fully active! Check your confirmation receipt or WhatsApp for direct access."}
                             </span>
                           </div>
                         ) : isProcessing ? (
@@ -556,49 +710,212 @@ export function CustomerAccountClient({
           </div>
         )}
 
-        {/* ==================== TAB 3: PROFILE DETAILS ==================== */}
+        {/* ==================== TAB 3: WISHLIST ==================== */}
+        {activeTab === "wishlist" && (
+          <div className="rounded-3xl bg-[#0B1224] border border-[#1B2A45] p-6 sm:p-8 shadow-xl space-y-6">
+            <div className="flex items-center justify-between border-b border-[#1B2A45] pb-4">
+              <div>
+                <h2 className="text-lg font-bold text-[#F8FAFC]">Saved Wishlist Products</h2>
+                <p className="text-xs text-[#94A3B8]">
+                  Products and services you saved for later purchase.
+                </p>
+              </div>
+              {wishlistItems.length > 0 && (
+                <button
+                  type="button"
+                  onClick={clearWishlist}
+                  className="text-xs text-rose-400 hover:underline flex items-center gap-1"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Clear All</span>
+                </button>
+              )}
+            </div>
+
+            {wishlistItems.length === 0 ? (
+              <div className="text-center py-12 space-y-3">
+                <Heart className="h-10 w-10 text-[#94A3B8]/40 mx-auto" />
+                <h3 className="text-sm font-semibold text-[#F8FAFC]">Your wishlist is empty</h3>
+                <p className="text-xs text-[#94A3B8]">
+                  Click the heart icon on any product or service card to save it here.
+                </p>
+                <Link
+                  href="/products"
+                  className="inline-block px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#00D9FF] to-[#2563FF] text-xs font-bold text-white shadow-lg"
+                >
+                  Explore Products
+                </Link>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {wishlistItems.map((item) => (
+                  <div
+                    key={item.productId}
+                    className="p-4 rounded-2xl bg-[#080D1B] border border-[#1B2A45] hover:border-[#00D9FF]/40 space-y-3 flex flex-col justify-between"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-[#0B1224] border border-[#1B2A45] overflow-hidden flex items-center justify-center shrink-0">
+                        {item.featuredImage ? (
+                          <Image
+                            src={item.featuredImage}
+                            alt={item.name}
+                            width={48}
+                            height={48}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <ShoppingBag className="w-5 h-5 text-[#00D9FF]" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-[10px] text-[#00D9FF] font-semibold block truncate">
+                          {item.categoryName || "Digital Product"}
+                        </span>
+                        <h4 className="text-xs font-bold text-[#F8FAFC] truncate">
+                          <Link href={`/products/${item.slug}`} className="hover:underline">
+                            {item.name}
+                          </Link>
+                        </h4>
+                        <div className="flex items-baseline gap-2 mt-1">
+                          <span className="text-xs font-black text-[#00D9FF]">
+                            {formatPrice(item.salePrice ?? item.regularPrice)}
+                          </span>
+                          {item.salePrice && (
+                            <span className="text-[10px] text-[#94A3B8] line-through">
+                              {formatPrice(item.regularPrice)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-2 border-t border-[#1B2A45]">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          addToCart({
+                            id: item.productId,
+                            productId: item.productId,
+                            name: item.name,
+                            price: item.salePrice ?? item.regularPrice,
+                            regularPrice: item.regularPrice,
+                            image: item.featuredImage || undefined,
+                          });
+                          toast.success(`Added ${item.name} to cart!`);
+                        }}
+                        className="flex-1 py-1.5 px-3 rounded-lg bg-gradient-to-r from-[#00D9FF] to-[#2563FF] text-[#050812] text-xs font-bold hover:opacity-90 flex items-center justify-center gap-1.5"
+                      >
+                        <ShoppingBag className="w-3.5 h-3.5" />
+                        <span>Add to Cart</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeWishlistItem(item.productId)}
+                        className="p-1.5 rounded-lg border border-[#1B2A45] text-[#94A3B8] hover:text-rose-400 hover:border-rose-500/40"
+                        title="Remove from wishlist"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ==================== TAB 4: PROFILE SETTINGS ==================== */}
         {activeTab === "profile" && (
           <div className="rounded-3xl bg-[#0B1224] border border-[#1B2A45] p-6 sm:p-8 shadow-xl space-y-6 max-w-2xl">
             <div className="border-b border-[#1B2A45] pb-4">
               <h2 className="text-lg font-bold text-[#F8FAFC]">Personal Profile Information</h2>
               <p className="text-xs text-[#94A3B8]">
-                Your registered account details and contact information.
+                Update your contact details for instant service delivery and notifications.
               </p>
             </div>
 
-            <div className="space-y-4 text-xs">
-              <div className="p-4 rounded-2xl bg-[#080D1B] border border-[#1B2A45] flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-[#94A3B8] tracking-wider block">
-                    Full Name
-                  </span>
-                  <span className="text-sm font-bold text-[#F8FAFC]">{user.name || "N/A"}</span>
+            {profileSuccessMsg && (
+              <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>{profileSuccessMsg}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleProfileSave} className="space-y-4 text-xs">
+              <div>
+                <label className="text-[10px] uppercase font-bold text-[#94A3B8] tracking-wider block mb-1">
+                  Full Name
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    className="w-full bg-[#080D1B] border border-[#1B2A45] rounded-xl px-4 py-2.5 text-xs text-[#F8FAFC] focus:outline-none focus:border-[#00D9FF] pr-10"
+                    placeholder="Your Name"
+                  />
+                  <User className="w-4 h-4 text-[#94A3B8] absolute right-3 top-1/2 -translate-y-1/2" />
                 </div>
-                <User className="w-5 h-5 text-[#00D9FF]" />
               </div>
 
-              <div className="p-4 rounded-2xl bg-[#080D1B] border border-[#1B2A45] flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-[#94A3B8] tracking-wider block">
-                    Registered Email Address
-                  </span>
-                  <span className="text-sm font-bold text-[#F8FAFC]">{user.email}</span>
+              <div>
+                <label className="text-[10px] uppercase font-bold text-[#94A3B8] tracking-wider block mb-1">
+                  Registered Email Address (Read-only)
+                </label>
+                <div className="relative">
+                  <input
+                    type="email"
+                    value={user.email || ""}
+                    disabled
+                    className="w-full bg-[#050812] border border-[#1B2A45] rounded-xl px-4 py-2.5 text-xs text-[#94A3B8] cursor-not-allowed pr-10"
+                  />
+                  <Mail className="w-4 h-4 text-[#94A3B8] absolute right-3 top-1/2 -translate-y-1/2" />
                 </div>
-                <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                <span className="text-[10px] text-[#94A3B8]/60 mt-0.5 block">
+                  Email address cannot be changed as it is linked to your login credentials.
+                </span>
               </div>
 
-              {user.phone && (
-                <div className="p-4 rounded-2xl bg-[#080D1B] border border-[#1B2A45] flex items-center justify-between">
-                  <div>
-                    <span className="text-[10px] uppercase font-bold text-[#94A3B8] tracking-wider block">
-                      Phone Number
-                    </span>
-                    <span className="text-sm font-mono font-bold text-[#F8FAFC]">{user.phone}</span>
-                  </div>
-                  <Package className="w-5 h-5 text-purple-400" />
+              <div>
+                <label className="text-[10px] uppercase font-bold text-[#94A3B8] tracking-wider block mb-1">
+                  Phone / WhatsApp Number
+                </label>
+                <div className="relative">
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="w-full bg-[#080D1B] border border-[#1B2A45] rounded-xl px-4 py-2.5 text-xs text-[#F8FAFC] font-mono focus:outline-none focus:border-[#00D9FF] pr-10"
+                    placeholder="+880 1XXXXXXXXX"
+                  />
+                  <Phone className="w-4 h-4 text-[#94A3B8] absolute right-3 top-1/2 -translate-y-1/2" />
                 </div>
-              )}
-            </div>
+                <span className="text-[10px] text-[#94A3B8]/60 mt-0.5 block">
+                  Used by our team to deliver digital credentials and order updates via WhatsApp.
+                </span>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={isSavingProfile}
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#00D9FF] to-[#2563FF] text-[#050812] text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-2 disabled:opacity-50"
+                >
+                  {isSavingProfile ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      <span>Save Profile Changes</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
 
             <div className="pt-4 border-t border-[#1B2A45] flex justify-between items-center">
               <Link
@@ -616,6 +933,60 @@ export function CustomerAccountClient({
                 <LogOut className="w-3.5 h-3.5" />
                 <span>Sign Out</span>
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* ==================== TAB 5: SUPPORT & HELP ==================== */}
+        {activeTab === "support" && (
+          <div className="rounded-3xl bg-[#0B1224] border border-[#1B2A45] p-6 sm:p-8 shadow-xl space-y-6 max-w-2xl">
+            <div className="border-b border-[#1B2A45] pb-4">
+              <h2 className="text-lg font-bold text-[#F8FAFC]">Customer Support & Assistance</h2>
+              <p className="text-xs text-[#94A3B8]">
+                Need help with your course access, digital services, or payment verification?
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="p-4 rounded-2xl bg-[#080D1B] border border-[#1B2A45] space-y-2">
+                <span className="text-[10px] uppercase font-bold text-emerald-400 tracking-wider flex items-center gap-1.5">
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  Instant WhatsApp Help
+                </span>
+                <p className="text-xs text-[#94A3B8]">
+                  Direct message with our Chittagong support team for fast credential delivery.
+                </p>
+                <a
+                  href={getCleanWaLink()}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold hover:bg-emerald-500/20 transition-colors mt-2"
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  <span>Chat on WhatsApp</span>
+                </a>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-[#080D1B] border border-[#1B2A45] space-y-2">
+                <span className="text-[10px] uppercase font-bold text-[#00D9FF] tracking-wider flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5" />
+                  Support Hours
+                </span>
+                <p className="text-xs text-[#94A3B8]">
+                  Saturday to Thursday: 10:00 AM – 11:00 PM (BST)
+                </p>
+                <p className="text-[11px] text-[#00D9FF] font-semibold">
+                  Average response: Under 15 minutes
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-[#080D1B] border border-[#1B2A45] text-xs text-[#94A3B8] space-y-2">
+              <span className="text-[10px] uppercase font-bold text-[#F8FAFC] tracking-wider block">
+                Office & Verification Center
+              </span>
+              <p>Chandanaish 4370, Chittagong, Bangladesh</p>
+              <p className="text-[#00D9FF]">Hotline: +880 1873-168818</p>
             </div>
           </div>
         )}

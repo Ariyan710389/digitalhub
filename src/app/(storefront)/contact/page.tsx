@@ -7,7 +7,7 @@ import { MapPin, Phone, Mail, Clock, MessageSquare } from "lucide-react";
 export const revalidate = 30;
 
 export const metadata: Metadata = {
-  title: "Contact DigitalHub Support — Phone, WhatsApp & Office in Dhaka",
+  title: "Contact DigitalHub Support — Phone, WhatsApp & Office in Chittagong, Bangladesh",
   description:
     "Contact DigitalHub Bangladesh support team via WhatsApp, phone, or email for instant order verification, custom web development quotes, and subscription renewals.",
   alternates: {

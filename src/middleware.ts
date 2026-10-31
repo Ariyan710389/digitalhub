@@ -6,7 +6,17 @@ export default withAuth(
     const token = req.nextauth.token;
     const path = req.nextUrl.pathname;
 
-    // Check admin role
+    // Check admin API access
+    if (path.startsWith("/api/admin")) {
+      if (!token || (token.role !== "ADMIN" && token.role !== "STAFF")) {
+        return NextResponse.json(
+          { error: "Unauthorized. Administrator or Staff privilege required." },
+          { status: 403 }
+        );
+      }
+    }
+
+    // Check admin role for pages
     if (path.startsWith("/admin") && token?.role !== "ADMIN" && token?.role !== "STAFF") {
       return NextResponse.redirect(new URL("/", req.url));
     }
@@ -15,7 +25,11 @@ export default withAuth(
     callbacks: {
       authorized: ({ token, req }) => {
         const path = req.nextUrl.pathname;
-        if (path.startsWith("/admin") || path.startsWith("/account")) {
+        if (
+          path.startsWith("/admin") ||
+          path.startsWith("/account") ||
+          path.startsWith("/api/admin")
+        ) {
           return !!token;
         }
         return true;
@@ -28,5 +42,5 @@ export default withAuth(
 );
 
 export const config = {
-  matcher: ["/admin/:path*", "/account/:path*"],
+  matcher: ["/admin/:path*", "/account/:path*", "/api/admin/:path*"],
 };

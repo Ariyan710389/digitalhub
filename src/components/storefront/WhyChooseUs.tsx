@@ -25,7 +25,7 @@ export function WhyChooseUs() {
       icon: <Headphones className="w-6 h-6 text-[#00D9FF]" />,
       title: "24/7 Priority Support",
       description:
-        "Our Dhaka-based support team is always available via WhatsApp, Telegram, or ticket to assist your setup.",
+        "Our Bangladesh-based support team is always available via WhatsApp, Telegram, or ticket to assist your setup.",
     },
   ];
 
