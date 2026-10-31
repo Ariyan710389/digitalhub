@@ -15,6 +15,7 @@ import {
   LogOut,
   Menu,
   X,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -43,6 +44,11 @@ export function AdminSidebarClient({ user, orderCount = 0 }: AdminSidebarProps) 
       href: "/admin/orders",
       icon: <ShoppingBag className="w-4 h-4" />,
       badge: orderCount > 0 ? orderCount : undefined,
+    },
+    {
+      name: "Customers",
+      href: "/admin/customers",
+      icon: <Users className="w-4 h-4" />,
     },
     {
       name: "Products",

@@ -83,7 +83,7 @@ export default async function AdminDashboardOverview() {
       </div>
 
       {/* Stat Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         {/* Confirmed Revenue */}
         <div className="p-5 rounded-2xl bg-[#0B1224] border border-[#1B2A45] space-y-3">
           <div className="flex items-center justify-between">
@@ -96,14 +96,17 @@ export default async function AdminDashboardOverview() {
             {formatPrice(confirmedRevenue)}
           </div>
           <div className="text-[10px] text-[#94A3B8]">
-            Only verified and completed orders
+            Only verified orders
           </div>
         </div>
 
         {/* Total Orders */}
-        <div className="p-5 rounded-2xl bg-[#0B1224] border border-[#1B2A45] space-y-3">
+        <Link
+          href="/admin/orders"
+          className="p-5 rounded-2xl bg-[#0B1224] border border-[#1B2A45] hover:border-blue-500/40 transition-colors space-y-3 block group"
+        >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-[#94A3B8]">Total Orders</span>
+            <span className="text-xs font-semibold text-[#94A3B8] group-hover:text-blue-400 transition-colors">Total Orders</span>
             <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400">
               <ShoppingCart className="h-4 w-4" />
             </div>
@@ -111,15 +114,19 @@ export default async function AdminDashboardOverview() {
           <div className="text-2xl font-black text-[#F8FAFC]">
             {totalOrdersCount}
           </div>
-          <div className="text-[10px] text-[#94A3B8]">
-            {pendingOrdersCount} pending processing
+          <div className="text-[10px] text-blue-400 flex items-center gap-1">
+            <span>{pendingOrdersCount} pending</span>
+            <ArrowRight className="h-2.5 w-2.5" />
           </div>
-        </div>
+        </Link>
 
         {/* Pending Payments */}
-        <div className="p-5 rounded-2xl bg-[#0B1224] border border-[#1B2A45] space-y-3">
+        <Link
+          href="/admin/payments"
+          className="p-5 rounded-2xl bg-[#0B1224] border border-[#1B2A45] hover:border-amber-500/40 transition-colors space-y-3 block group"
+        >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-[#94A3B8]">Pending Payments</span>
+            <span className="text-xs font-semibold text-[#94A3B8] group-hover:text-amber-400 transition-colors">Pending Payments</span>
             <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
               <Clock className="h-4 w-4" />
             </div>
@@ -127,15 +134,19 @@ export default async function AdminDashboardOverview() {
           <div className="text-2xl font-black text-amber-400">
             {pendingPaymentsCount}
           </div>
-          <div className="text-[10px] text-[#94A3B8]">
-            Awaiting admin manual review
+          <div className="text-[10px] text-amber-300 flex items-center gap-1">
+            <span>Awaiting review</span>
+            <ArrowRight className="h-2.5 w-2.5" />
           </div>
-        </div>
+        </Link>
 
         {/* Catalog Items */}
-        <div className="p-5 rounded-2xl bg-[#0B1224] border border-[#1B2A45] space-y-3">
+        <Link
+          href="/admin/products"
+          className="p-5 rounded-2xl bg-[#0B1224] border border-[#1B2A45] hover:border-purple-500/40 transition-colors space-y-3 block group"
+        >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-[#94A3B8]">Active Catalog</span>
+            <span className="text-xs font-semibold text-[#94A3B8] group-hover:text-purple-400 transition-colors">Active Catalog</span>
             <div className="w-8 h-8 rounded-lg bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400">
               <Package className="h-4 w-4" />
             </div>
@@ -143,10 +154,31 @@ export default async function AdminDashboardOverview() {
           <div className="text-2xl font-black text-[#F8FAFC]">
             {totalProductsCount} Products
           </div>
-          <div className="text-[10px] text-[#94A3B8]">
-            {totalCustomersCount} registered customers
+          <div className="text-[10px] text-purple-300 flex items-center gap-1">
+            <span>Manage prices & catalog</span>
+            <ArrowRight className="h-2.5 w-2.5" />
           </div>
-        </div>
+        </Link>
+
+        {/* Registered Customers */}
+        <Link
+          href="/admin/customers"
+          className="p-5 rounded-2xl bg-[#0B1224] border border-[#1B2A45] hover:border-cyan-500/40 transition-colors space-y-3 block group"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-[#94A3B8] group-hover:text-[#00D9FF] transition-colors">Registered Users</span>
+            <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-[#00D9FF]">
+              <Users className="h-4 w-4" />
+            </div>
+          </div>
+          <div className="text-2xl font-black text-[#00D9FF]">
+            {totalCustomersCount} Customers
+          </div>
+          <div className="text-[10px] text-cyan-300 flex items-center gap-1">
+            <span>View user directory</span>
+            <ArrowRight className="h-2.5 w-2.5" />
+          </div>
+        </Link>
       </div>
 
       {/* Recent Orders Table */}
