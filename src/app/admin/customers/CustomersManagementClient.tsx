@@ -20,6 +20,9 @@ import {
   X,
   CreditCard,
   Sparkles,
+  Trash2,
+  Loader2,
+  AlertTriangle,
 } from "lucide-react";
 import { formatPrice, getOrderStatusLabel } from "@/lib/utils";
 import { Modal } from "@/components/ui/Modal";
@@ -63,17 +66,25 @@ interface CustomersManagementClientProps {
 }
 
 export function CustomersManagementClient({
-  customers,
-  totalCustomers,
-  totalBuyers,
+  customers: initialCustomers,
+  totalCustomers: initialTotalCustomers,
+  totalBuyers: initialTotalBuyers,
   totalRevenue,
   totalOrdersCount,
 }: CustomersManagementClientProps) {
+  const [customerList, setCustomerList] = useState<CustomerData[]>(initialCustomers);
+  const [totalCustomersCount, setTotalCustomersCount] = useState(initialTotalCustomers);
+  const [totalBuyersCount, setTotalBuyersCount] = useState(initialTotalBuyers);
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<"ALL" | "BUYERS" | "ADMINS">("ALL");
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerData | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [copiedText, setCopiedText] = useState<string | null>(null);
+
+  // Delete Customer State
+  const [deletingCustomer, setDeletingCustomer] = useState<CustomerData | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleCopy = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -123,7 +134,56 @@ export function CustomersManagementClient({
     }
   };
 
-  const filteredCustomers = customers.filter((c) => {
+  const promptDeleteCustomer = (customer: CustomerData) => {
+    if (customer.role === "ADMIN") {
+      toast.error("Administrator accounts cannot be deleted from the customer manager.");
+      return;
+    }
+    setDeletingCustomer(customer);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDeleteCustomer = async () => {
+    if (!deletingCustomer) return;
+
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/customers/${deletingCustomer.id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to delete customer account.");
+      }
+
+      toast.success(data.message || `Customer ${deletingCustomer.name} deleted successfully.`);
+
+      // Update state
+      setCustomerList((prev) => prev.filter((c) => c.id !== deletingCustomer.id));
+      setTotalCustomersCount((prev) => Math.max(0, prev - 1));
+      if (deletingCustomer.totalOrders > 0) {
+        setTotalBuyersCount((prev) => Math.max(0, prev - 1));
+      }
+
+      // If details modal was open for this user, close it
+      if (selectedCustomer?.id === deletingCustomer.id) {
+        setIsDetailModalOpen(false);
+        setSelectedCustomer(null);
+      }
+
+      setIsDeleteModalOpen(false);
+      setDeletingCustomer(null);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete customer account.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const filteredCustomers = customerList.filter((c) => {
     const q = searchQuery.toLowerCase().trim();
     const matchesSearch =
       !q ||
@@ -139,164 +199,179 @@ export function CustomersManagementClient({
     if (roleFilter === "ADMINS") {
       return c.role === "ADMIN" || c.role === "STAFF";
     }
-
     return true;
   });
 
   return (
-    <div className="space-y-6 max-w-7xl">
+    <div className="space-y-6">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-[#F8FAFC] flex items-center gap-2.5">
-            <Users className="w-6 h-6 text-[#00D9FF]" />
-            <span>Customer & User Directory</span>
+          <h1 className="text-xl sm:text-2xl font-black text-[#F8FAFC] flex items-center gap-2">
+            <Users className="h-6 w-6 text-[#00D9FF]" />
+            <span>Customers & Users Directory (গ্রাহক তালিকা)</span>
           </h1>
-          <p className="text-xs text-[#94A3B8] mt-1">
-            View registered user profiles, login details, contact numbers, and purchase history.
+          <p className="text-xs sm:text-sm text-[#94A3B8] mt-1">
+            Registered customer accounts, orders history, WhatsApp channels, and account control.
           </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="px-3 py-1.5 rounded-xl bg-[#0B1224] border border-[#1B2A45] text-xs font-mono text-[#00D9FF]">
-            {filteredCustomers.length} Showing of {customers.length} Users
-          </span>
         </div>
       </div>
 
-      {/* Analytics Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Total Registered Users */}
-        <div className="p-4 rounded-2xl bg-[#0B1224] border border-[#1B2A45] flex items-center justify-between shadow-lg">
-          <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
-              Total Registered Users
-            </span>
-            <span className="text-2xl font-black text-[#F8FAFC] block mt-0.5">
-              {totalCustomers}
-            </span>
-            <span className="text-[10px] text-cyan-400">Total accounts created</span>
+      {/* KPI Stats Row */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {/* Total Customers */}
+        <div className="rounded-2xl bg-[#0B1224] border border-[#1B2A45] p-4 sm:p-5 relative overflow-hidden group">
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#94A3B8]">
+                Registered Accounts
+              </span>
+              <div className="text-2xl sm:text-3xl font-black text-[#F8FAFC] mt-1">
+                {totalCustomersCount}
+              </div>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-[#00D9FF]/10 border border-[#00D9FF]/20 flex items-center justify-center text-[#00D9FF]">
+              <Users className="w-6 h-6" />
+            </div>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-[#00D9FF]">
-            <Users className="w-5 h-5" />
+          <div className="mt-3 text-[11px] text-[#00D9FF] flex items-center gap-1">
+            <UserCheck className="w-3.5 h-3.5" />
+            <span>Active authenticated users</span>
           </div>
         </div>
 
-        {/* Buyers / Paying Clients */}
-        <div className="p-4 rounded-2xl bg-[#0B1224] border border-[#1B2A45] flex items-center justify-between shadow-lg">
-          <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
-              Active Buyers (সার্ভিস গ্রহীতা)
-            </span>
-            <span className="text-2xl font-black text-emerald-400 block mt-0.5">
-              {totalBuyers}
-            </span>
-            <span className="text-[10px] text-emerald-400/80">Placed at least 1 order</span>
+        {/* Buyers Count */}
+        <div className="rounded-2xl bg-[#0B1224] border border-[#1B2A45] p-4 sm:p-5 relative overflow-hidden group">
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#94A3B8]">
+                Paying Customers (ক্রেতা)
+              </span>
+              <div className="text-2xl sm:text-3xl font-black text-emerald-400 mt-1">
+                {totalBuyersCount}
+              </div>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+              <ShoppingBag className="w-6 h-6" />
+            </div>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-            <UserCheck className="w-5 h-5" />
+          <div className="mt-3 text-[11px] text-emerald-400 flex items-center gap-1">
+            <TrendingUp className="w-3.5 h-3.5" />
+            <span>
+              {totalCustomersCount > 0
+                ? `${Math.round((totalBuyersCount / totalCustomersCount) * 100)}% conversion rate`
+                : "0% conversion"}
+            </span>
           </div>
         </div>
 
         {/* Total Orders Placed */}
-        <div className="p-4 rounded-2xl bg-[#0B1224] border border-[#1B2A45] flex items-center justify-between shadow-lg">
-          <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
-              Total Customer Orders
-            </span>
-            <span className="text-2xl font-black text-purple-400 block mt-0.5">
-              {totalOrdersCount}
-            </span>
-            <span className="text-[10px] text-purple-400/80">Across all catalog items</span>
+        <div className="rounded-2xl bg-[#0B1224] border border-[#1B2A45] p-4 sm:p-5 relative overflow-hidden group">
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#94A3B8]">
+                Total Orders Placed
+              </span>
+              <div className="text-2xl sm:text-3xl font-black text-purple-400 mt-1">
+                {totalOrdersCount}
+              </div>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
+              <CreditCard className="w-6 h-6" />
+            </div>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400">
-            <ShoppingBag className="w-5 h-5" />
+          <div className="mt-3 text-[11px] text-purple-400 flex items-center gap-1">
+            <ShoppingBag className="w-3.5 h-3.5" />
+            <span>Services, tools & courses</span>
           </div>
         </div>
 
-        {/* Total Customer Spent */}
-        <div className="p-4 rounded-2xl bg-[#0B1224] border border-[#1B2A45] flex items-center justify-between shadow-lg">
-          <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
-              Total Customer Revenue
-            </span>
-            <span className="text-2xl font-black text-[#00D9FF] block mt-0.5">
-              {formatPrice(totalRevenue)}
-            </span>
-            <span className="text-[10px] text-[#00D9FF]/80">Confirmed purchases</span>
+        {/* Total Revenue */}
+        <div className="rounded-2xl bg-[#0B1224] border border-[#1B2A45] p-4 sm:p-5 relative overflow-hidden group">
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#94A3B8]">
+                Lifetime Revenue
+              </span>
+              <div className="text-2xl sm:text-3xl font-black text-[#00D9FF] mt-1">
+                {formatPrice(totalRevenue)}
+              </div>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-[#00D9FF]/20 to-[#8B3DFF]/20 border border-[#00D9FF]/30 flex items-center justify-center text-[#00D9FF]">
+              <Sparkles className="w-6 h-6" />
+            </div>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-[#00D9FF]">
-            <TrendingUp className="w-5 h-5" />
+          <div className="mt-3 text-[11px] text-[#94A3B8] flex items-center gap-1">
+            <span>Verified paid orders in BDT</span>
           </div>
         </div>
       </div>
 
-      {/* Directory Table Card */}
-      <div className="rounded-3xl bg-[#0B1224] border border-[#1B2A45] p-6 shadow-xl space-y-4">
-        {/* Search & Filter Bar */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-[#1B2A45] pb-4">
-          {/* Filter Pills */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
+      {/* Filter & Search Bar */}
+      <div className="rounded-2xl bg-[#0B1224] border border-[#1B2A45] p-4 flex flex-col md:flex-row items-center justify-between gap-3">
+        {/* Search */}
+        <div className="relative w-full md:w-96">
+          <input
+            type="text"
+            placeholder="Search by customer name, email, or phone..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-[#080D1B] border border-[#1B2A45] rounded-xl pl-10 pr-4 py-2 text-xs text-[#F8FAFC] placeholder:text-[#94A3B8]/60 focus:outline-none focus:border-[#00D9FF]"
+          />
+          <Search className="w-4 h-4 text-[#94A3B8] absolute left-3 top-1/2 -translate-y-1/2" />
+          {searchQuery && (
             <button
-              onClick={() => setRoleFilter("ALL")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                roleFilter === "ALL"
-                  ? "bg-[#00D9FF] text-[#050812] shadow-[0_0_12px_rgba(0,217,255,0.3)]"
-                  : "bg-[#080D1B] border border-[#1B2A45] text-[#94A3B8] hover:text-[#F8FAFC]"
-              }`}
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#F8FAFC]"
             >
-              All Users ({customers.length})
+              <X className="w-3.5 h-3.5" />
             </button>
-
-            <button
-              onClick={() => setRoleFilter("BUYERS")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                roleFilter === "BUYERS"
-                  ? "bg-[#00D9FF] text-[#050812] shadow-[0_0_12px_rgba(0,217,255,0.3)]"
-                  : "bg-[#080D1B] border border-[#1B2A45] text-[#94A3B8] hover:text-[#F8FAFC]"
-              }`}
-            >
-              Buyers with Orders ({totalBuyers})
-            </button>
-
-            <button
-              onClick={() => setRoleFilter("ADMINS")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                roleFilter === "ADMINS"
-                  ? "bg-[#00D9FF] text-[#050812] shadow-[0_0_12px_rgba(0,217,255,0.3)]"
-                  : "bg-[#080D1B] border border-[#1B2A45] text-[#94A3B8] hover:text-[#F8FAFC]"
-              }`}
-            >
-              Admins & Staff
-            </button>
-          </div>
-
-          {/* Search Box */}
-          <div className="relative w-full md:w-80">
-            <input
-              type="text"
-              placeholder="Search by name, email, or phone..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-[#080D1B] text-xs text-[#F8FAFC] pl-8 pr-8 py-2 rounded-xl border border-[#1B2A45] focus:outline-none focus:border-[#00D9FF]"
-            />
-            <Search className="w-3.5 h-3.5 text-[#94A3B8] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#F8FAFC]"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
+          )}
         </div>
 
-        {/* Users Table */}
+        {/* Filter Pills */}
+        <div className="flex items-center gap-1.5 w-full md:w-auto overflow-x-auto scrollbar-none">
+          <button
+            onClick={() => setRoleFilter("ALL")}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+              roleFilter === "ALL"
+                ? "bg-[#00D9FF] text-[#050812]"
+                : "bg-[#080D1B] text-[#94A3B8] border border-[#1B2A45] hover:text-[#F8FAFC]"
+            }`}
+          >
+            All Accounts ({customerList.length})
+          </button>
+
+          <button
+            onClick={() => setRoleFilter("BUYERS")}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+              roleFilter === "BUYERS"
+                ? "bg-emerald-400 text-[#050812]"
+                : "bg-[#080D1B] text-[#94A3B8] border border-[#1B2A45] hover:text-emerald-400"
+            }`}
+          >
+            Buyers Only ({customerList.filter((c) => c.totalOrders > 0).length})
+          </button>
+
+          <button
+            onClick={() => setRoleFilter("ADMINS")}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+              roleFilter === "ADMINS"
+                ? "bg-amber-400 text-[#050812]"
+                : "bg-[#080D1B] text-[#94A3B8] border border-[#1B2A45] hover:text-amber-400"
+            }`}
+          >
+            Admins & Staff ({customerList.filter((c) => c.role === "ADMIN" || c.role === "STAFF").length})
+          </button>
+        </div>
+      </div>
+
+      {/* Main Customers Table */}
+      <div className="rounded-2xl bg-[#0B1224] border border-[#1B2A45] overflow-hidden shadow-xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-[#1B2A45] text-[#94A3B8] uppercase text-[10px] tracking-wider">
+              <tr className="border-b border-[#1B2A45] bg-[#080D1B] text-[#94A3B8] uppercase tracking-wider text-[10px]">
                 <th className="py-3 px-3">User Profile (নাম)</th>
                 <th className="py-3 px-3">Email Address (ইমেইল)</th>
                 <th className="py-3 px-3">Phone Number (মোবাইল)</th>
@@ -317,6 +392,7 @@ export function CustomersManagementClient({
                 filteredCustomers.map((user) => {
                   const cleanPhone = getCleanPhone(user.phone);
                   const waLink = getWhatsAppLink(user.phone, user.name);
+                  const isAccountAdmin = user.role === "ADMIN";
 
                   return (
                     <tr key={user.id} className="hover:bg-[#101A30]/50 transition-colors">
@@ -458,10 +534,23 @@ export function CustomersManagementClient({
                               setIsDetailModalOpen(true);
                             }}
                             className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#0B1224] border border-[#1B2A45] hover:border-[#00D9FF]/50 text-[#F8FAFC] hover:text-[#00D9FF] transition-all"
+                            title="View customer profile details and orders"
                           >
                             <span>Details</span>
                             <ExternalLink className="w-3 h-3" />
                           </button>
+
+                          {/* Delete Customer Button */}
+                          {!isAccountAdmin && (
+                            <button
+                              type="button"
+                              onClick={() => promptDeleteCustomer(user)}
+                              className="p-1.5 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/30 hover:bg-rose-500 hover:text-white transition-colors"
+                              title="Delete customer account"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -612,7 +701,7 @@ export function CustomersManagementClient({
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="font-mono font-bold text-xs text-[#00D9FF]">
-                              {order.orderNumber}
+                              #{order.orderNumber}
                             </span>
                             <span className="text-[10px] text-[#94A3B8]">
                               • {formatDate(order.createdAt)}
@@ -661,14 +750,116 @@ export function CustomersManagementClient({
               )}
             </div>
 
-            {/* Modal Close */}
-            <div className="flex items-center justify-end pt-3 border-t border-[#1B2A45]">
+            {/* Modal Footer Actions */}
+            <div className="flex items-center justify-between pt-3 border-t border-[#1B2A45]">
+              {selectedCustomer.role !== "ADMIN" ? (
+                <button
+                  type="button"
+                  onClick={() => promptDeleteCustomer(selectedCustomer)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 hover:bg-rose-500 hover:text-white text-xs font-semibold transition-all"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete Customer Account</span>
+                </button>
+              ) : (
+                <div />
+              )}
+
               <button
                 type="button"
                 onClick={() => setIsDetailModalOpen(false)}
                 className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#101A30] text-[#F8FAFC] hover:bg-[#1B2A45] transition-colors"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* ==================== DELETE CONFIRMATION MODAL ==================== */}
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          if (!isDeleting) {
+            setIsDeleteModalOpen(false);
+            setDeletingCustomer(null);
+          }
+        }}
+        maxWidth="md"
+        title={
+          <div className="flex items-center gap-2 text-rose-400">
+            <AlertTriangle className="w-5 h-5 shrink-0" />
+            <span className="text-base font-bold">Delete Customer Account</span>
+          </div>
+        }
+      >
+        {deletingCustomer && (
+          <div className="space-y-4">
+            <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300 space-y-2">
+              <p className="font-semibold">
+                Are you sure you want to permanently delete this customer&apos;s account?
+              </p>
+              <p className="text-rose-300/80 leading-relaxed text-[11px]">
+                This will delete their login credentials, saved profile, and account access. Past order receipts will be detached and preserved for store accounting.
+              </p>
+            </div>
+
+            {/* Customer Summary Card */}
+            <div className="p-3.5 rounded-xl bg-[#080D1B] border border-[#1B2A45] space-y-1.5 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-[#94A3B8]">Customer:</span>
+                <span className="font-bold text-[#F8FAFC]">{deletingCustomer.name}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[#94A3B8]">Email:</span>
+                <span className="font-mono text-[#00D9FF]">{deletingCustomer.email}</span>
+              </div>
+              {deletingCustomer.phone && (
+                <div className="flex items-center justify-between">
+                  <span className="text-[#94A3B8]">Phone:</span>
+                  <span className="font-mono text-[#F8FAFC]">{deletingCustomer.phone}</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between">
+                <span className="text-[#94A3B8]">Total Orders:</span>
+                <span className="font-semibold text-purple-400">
+                  {deletingCustomer.totalOrders} order{deletingCustomer.totalOrders === 1 ? "" : "s"}
+                </span>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#1B2A45]">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => {
+                  setIsDeleteModalOpen(false);
+                  setDeletingCustomer(null);
+                }}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#101A30] text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#1B2A45] transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={confirmDeleteCustomer}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white flex items-center gap-1.5 shadow-lg shadow-rose-600/30 transition-all disabled:opacity-50"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Yes, Permanently Delete</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
